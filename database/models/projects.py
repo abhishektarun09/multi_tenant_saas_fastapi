@@ -2,8 +2,8 @@ from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
-from ..base import Base
 
+from database.db.base import Base
 
 class Project(Base):
     __tablename__ = "projects"
@@ -18,4 +18,4 @@ class Project(Base):
     __table_args__ = (UniqueConstraint("organization_id", "name", name="uq_org_project_name"),)
     
     organization = relationship("Organization", back_populates="projects")
-    creator = relationship("User", back_populates="projects")
+    creator = relationship("Users", back_populates="projects")

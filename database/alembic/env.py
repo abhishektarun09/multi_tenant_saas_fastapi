@@ -6,11 +6,12 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from db.base import Base
-from db.models.users import Users
-from db.models.projects import Project
-from db.models.organization_member import OrganizationMember
-from db.models.organization import Organization
+
+from database.db.base import Base
+from database.models.users import Users
+from database.models.projects import Project
+from database.models.organization_member import OrganizationMember
+from database.models.organization import Organization
 
 from dotenv import load_dotenv
 load_dotenv()

@@ -3,7 +3,8 @@ from sqlalchemy import Column, Integer, String, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
-from ..base import Base
+
+from database.db.base import Base
 
 class UserStatus(enum.Enum):
     active = "active"
@@ -22,4 +23,4 @@ class Users(Base):
     
     organizations = relationship("OrganizationMember", back_populates="users")
     
-    projects = relationship("Projects", back_populates="creator")
+    projects = relationship("Project", back_populates="creator")

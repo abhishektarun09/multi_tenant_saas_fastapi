@@ -2,7 +2,8 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
-from ..base import Base
+
+from database.db.base import Base
 
 class Organization(Base):
     __tablename__ = "organizations"

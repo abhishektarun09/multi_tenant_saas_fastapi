@@ -1,0 +1,1 @@
+from database.db.base import Base

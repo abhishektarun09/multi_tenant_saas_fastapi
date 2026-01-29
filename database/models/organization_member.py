@@ -4,7 +4,8 @@ from sqlalchemy import Column, Integer, ForeignKey, Enum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
-from ..base import Base
+
+from database.db.base import Base
 
 class OrgRole(enum.Enum):
     owner = "owner"
@@ -24,6 +25,6 @@ class OrganizationMember(Base):
     
     __table_args__ = (UniqueConstraint("user_id", "organization_id", name="uq_user_org"),)
     
-    users = relationship("User", back_populates="organizations")
+    users = relationship("Users", back_populates="organizations")
     
     organization = relationship("Organization", back_populates="members")
