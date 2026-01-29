@@ -10,7 +10,7 @@ router = APIRouter(
     tags=['Users']
 )
 
-@router.post("/register/v1", status_code=status.HTTP_201_CREATED, response_model=UserOut)
+@router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserOut)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     
     # Check if user with the same email already exists
@@ -22,7 +22,6 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         )
 
     # hash the password - user.password
-    print(user.password_hash)
     hashed_password = hash(user.password_hash)
     
     user_data = user.model_dump()
@@ -36,7 +35,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 @router.get('/{id}', response_model=UserOut)
-def get_user(id: int, db: Session = Depends(get_db)):
+async def get_user(id: int, db: Session = Depends(get_db)):
     user = db.query(Users).filter(Users.id == id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

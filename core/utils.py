@@ -8,3 +8,11 @@ def hash(password: str):
 
 def verify(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
+
+import re
+
+def slugify(name: str):
+    name = name.lower().strip()
+    name = re.sub(r"[^a-z0-9]+", "-", name)
+    name = re.sub(r"^-+|-+$", "", name)
+    return name
