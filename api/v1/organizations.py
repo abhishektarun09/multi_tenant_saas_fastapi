@@ -11,6 +11,7 @@ router = APIRouter(
     tags=['Organizations']
 )
 
+# JWT Protected
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=OrganizationOut)
 def register_organization(organization: OrganizationCreate, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
     
