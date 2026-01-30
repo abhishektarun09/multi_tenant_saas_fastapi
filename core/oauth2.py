@@ -1,10 +1,11 @@
-from jose import JWTError, jwt
+from jose import JWTError, jwt, ExpiredSignatureError
 from datetime import datetime, timedelta, timezone
 from fastapi import Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from core.config import env
 from database.models.users import Users
+from database.schemas.authorization_schemas import TokenData
 from database.db.base import get_db
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
@@ -33,7 +34,7 @@ def verify_access_token(token: str, credentials_exception):
         id: str = payload.get("user_id")
         if id is None:
             raise credentials_exception
-        token_data = schemas.TokenData(id=id)
+        token_data = TokenData(id=id)
     except JWTError:
         raise credentials_exception
 
