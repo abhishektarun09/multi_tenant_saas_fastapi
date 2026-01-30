@@ -28,10 +28,14 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     user_data['password_hash'] = hashed_password
     new_user = Users(**user_data)
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except Exception:
+        db.rollback()
+        raise
+    
     return new_user
 
 @router.get('/{id}', response_model=UserOut)

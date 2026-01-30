@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import Literal
 from datetime import datetime
+from pydantic import ConfigDict
 
 from typing import Optional, Literal
 
@@ -15,5 +16,4 @@ class UserOut(BaseModel):
     email: EmailStr
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

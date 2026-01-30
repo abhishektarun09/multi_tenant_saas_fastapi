@@ -13,13 +13,12 @@ from database.models.projects import Project
 from database.models.organization_member import OrganizationMember
 from database.models.organization import Organization
 
-from dotenv import load_dotenv
-load_dotenv()
+from core.config import env
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", f"postgresql+psycopg2://{os.getenv("POSTGRES_USER")}:{os.getenv("POSTGRES_PASSWORD")}@{os.getenv("POSTGRES_HOST")}:{os.getenv("POSTGRES_PORT")}/{os.getenv("POSTGRES_DATABASE")}")
+config.set_main_option("sqlalchemy.url", f"postgresql+psycopg2://{env.database_username}:{env.database_password}@{env.database_hostname}:{env.database_port}/{env.database_name}")
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

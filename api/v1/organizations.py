@@ -27,8 +27,12 @@ def register_organization(organization: OrganizationCreate, db: Session = Depend
     organization_data['slug'] = slug_name
     new_organization = Organization(**organization_data)
 
-    db.add(new_organization)
-    db.commit()
-    db.refresh(new_organization)
+    try:
+        db.add(new_organization)
+        db.commit()
+        db.refresh(new_organization)
+    except Exception:
+        db.rollback()
+        raise
 
     return new_organization
