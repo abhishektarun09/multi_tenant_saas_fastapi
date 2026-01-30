@@ -1,4 +1,5 @@
-import os 
+from dotenv import load_dotenv
+load_dotenv()
 
 from logging.config import fileConfig
 
@@ -12,6 +13,7 @@ from database.models.users import Users
 from database.models.projects import Project
 from database.models.organization_member import OrganizationMember
 from database.models.organization import Organization
+from database.models.audit_log import AuditLog
 
 from core.config import env
 
