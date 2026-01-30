@@ -7,3 +7,4 @@ class Token(BaseModel):
     
 class TokenData(BaseModel):
     id: Optional[int] = None
+    org_id: Optional[int] = None
