@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from core.config import env
 from database.models.users import Users
+from database.models.organization_member import OrganizationMember
 from database.schemas.authorization_schemas import TokenData
 from database.db.base import get_db
 
@@ -50,3 +51,24 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     user = db.query(Users).filter(Users.id == token.id).first()
 
     return user
+
+def get_organization(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                          detail=f"Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
+    
+    payload = verify_access_token(token=token, credentials_exception=credentials_exception)
+    
+    org_id = payload.org_id
+    
+    if not org_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Organization not selected")
+    
+    membership = db.query(OrganizationMember).filter(OrganizationMember.user_id == payload.id, OrganizationMember.organization_id == org_id).first() #admin, member etc.
+    
+    if not membership:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this organization")
+    
+    return membership
+
+def get_user_and_org(user=Depends(get_current_user), membership=Depends(get_organization)):
+    return user, membership

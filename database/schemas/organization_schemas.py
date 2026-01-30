@@ -13,3 +13,6 @@ class OrganizationOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+    
+class SelectOrganization(BaseModel):
+    org_id: int
