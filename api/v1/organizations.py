@@ -4,6 +4,7 @@ from database.models.organization import Organization
 from database.schemas.organization_schemas import OrganizationCreate, OrganizationOut
 from database.db.base import get_db
 from core.utils import slugify
+from core.oauth2 import get_current_user
 
 router = APIRouter(
     prefix="/organization",
@@ -11,7 +12,7 @@ router = APIRouter(
 )
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=OrganizationOut)
-def register_organization(organization: OrganizationCreate, db: Session = Depends(get_db)):
+def register_organization(organization: OrganizationCreate, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
     
     slug_name = slugify(organization.name)
     
