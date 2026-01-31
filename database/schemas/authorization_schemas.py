@@ -6,7 +6,7 @@ class Token(BaseModel):
     token_type: str
     
 class TokenData(BaseModel):
-    id: Optional[int] = None
+    user_id: int
     org_id: Optional[int] = None
     
 class LoginOut(BaseModel):
