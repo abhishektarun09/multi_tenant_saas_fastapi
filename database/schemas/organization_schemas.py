@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
-from typing import Literal
+from typing import Literal, List
 from datetime import datetime
 
 from typing import Optional, Literal
@@ -16,3 +16,10 @@ class OrganizationOut(BaseModel):
     
 class SelectOrganization(BaseModel):
     org_id: int
+    
+class AddUsers(BaseModel):
+    email: EmailStr
+    role: Literal["member", "owner", "admin"]
+    
+class AddUsersOut(BaseModel):
+    message: str
