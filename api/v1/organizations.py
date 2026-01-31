@@ -27,12 +27,20 @@ def register_organization(organization: OrganizationCreate, db: Session = Depend
             detail="Organization already registered"
         )
     
-    organization_data = organization.model_dump()
-    organization_data['slug'] = slug_name
-    new_organization = Organization(**organization_data)
+    new_organization = organization.model_dump()
+    new_organization['slug'] = slug_name
+    new_organization = Organization(**new_organization)
 
     try:
         db.add(new_organization)
+        db.flush()
+        
+        membership = OrganizationMember(
+            user_id = current_user.id,
+            organization_id = new_organization.id,
+            role = "owner"
+        )
+        db.add(membership)
         db.commit()
         db.refresh(new_organization)
     except Exception:
