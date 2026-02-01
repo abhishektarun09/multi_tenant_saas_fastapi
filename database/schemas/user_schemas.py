@@ -20,4 +20,4 @@ class UserOut(BaseModel):
     
 class Me(BaseModel):
     email: EmailStr
-    org_ids: List[int]
+    name: str
