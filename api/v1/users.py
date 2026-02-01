@@ -1,8 +1,10 @@
-from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
+from fastapi import status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
+from core.oauth2 import get_current_user
+from database.models.organization_member import OrganizationMember
 from database.models.users import Users
-from core.utils import hash, verify
-from database.schemas.user_schemas import UserCreate, UserOut
+from core.utils import hash
+from database.schemas.user_schemas import UserCreate, UserOut, Me
 from database.db.base import get_db
 
 router = APIRouter(
@@ -38,11 +40,13 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     
     return new_user
 
-@router.get('/{id}', response_model=UserOut)
-async def get_user(id: int, db: Session = Depends(get_db)):
-    user = db.query(Users).filter(Users.id == id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"User with id: {id} does not exist")
-
-    return user
+@router.get("/me", response_model=Me)
+def list_orgs(db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
+    
+    user = db.query(Users).filter(Users.id == current_user.id).first()
+    
+    # List out the organizations the user is part of for frontend to select
+    org_ids = db.query(OrganizationMember.organization_id).filter(OrganizationMember.user_id == user.id).all()
+    org_ids = [org_id for (org_id,) in org_ids]
+    
+    return {"email": user.email, "org_ids" : org_ids}
