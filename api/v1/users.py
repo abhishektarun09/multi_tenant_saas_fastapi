@@ -4,6 +4,7 @@ from core.oauth2 import get_current_user
 from database.models.organization_member import OrganizationMember
 from database.models.users import Users
 from core.utils import hash
+from database.schemas.organization_schemas import ListOrgs
 from database.schemas.user_schemas import UserCreate, UserOut, Me
 from database.db.base import get_db
 
@@ -41,6 +42,12 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 @router.get("/me", response_model=Me)
+def me(db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
+    
+    user = db.query(Users).filter(Users.id == current_user.id).first()
+    return user
+
+@router.get("/list_orgs", response_model=ListOrgs)
 def list_orgs(db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
     
     user = db.query(Users).filter(Users.id == current_user.id).first()

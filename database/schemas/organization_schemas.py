@@ -23,3 +23,7 @@ class AddUsers(BaseModel):
     
 class AddUsersOut(BaseModel):
     message: str
+    
+class ListOrgs(BaseModel):
+    email: EmailStr
+    org_ids: List[int]
