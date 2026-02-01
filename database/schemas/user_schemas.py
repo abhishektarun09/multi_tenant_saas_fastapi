@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Literal
+from typing import Literal, List
 from datetime import datetime
 from pydantic import ConfigDict
 
@@ -17,3 +17,7 @@ class UserOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+    
+class Me(BaseModel):
+    email: EmailStr
+    org_ids: List[int]

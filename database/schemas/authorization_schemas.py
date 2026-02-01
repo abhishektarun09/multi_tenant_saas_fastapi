@@ -12,4 +12,3 @@ class TokenData(BaseModel):
 class LoginOut(BaseModel):
     access_token: str
     token_type: str
-    org_ids: List[int]
