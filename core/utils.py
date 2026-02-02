@@ -1,9 +1,12 @@
 import re
 
 from typing import Optional, Dict, Any
+from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
+from core.oauth2 import verify_token
 from database.models.audit_log import AuditLog
+from database.models.jti_blocklist import JtiBlocklist
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -49,3 +52,24 @@ def audit_logs(
     )
 
     return entry
+
+def get_valid_refresh_payload(request: Request, db: Session):
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh Token missing")
+    
+    credentials_exception = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Could not validate credentials",
+    headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    payload = verify_token(token, credentials_exception)
+
+    if payload.token_type != "refresh":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+
+    if db.query(JtiBlocklist).filter_by(jti=payload.jti).first():
+        raise HTTPException(status_code=401, detail="Token expired or blocklisted")
+
+    return payload

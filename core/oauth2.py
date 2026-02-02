@@ -1,3 +1,4 @@
+import uuid
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 from fastapi import Depends, status, HTTPException
@@ -25,6 +26,7 @@ def create_access_token(data: dict):
 
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
+    to_encode["jti"] = str(uuid.uuid4())
 
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -35,13 +37,14 @@ def create_refresh_token(data: dict):
 
     expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp" : expire})
+    to_encode["jti"] = str(uuid.uuid4())
 
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
     return encoded_jwt
 
 
-def verify_access_token(token: str, credentials_exception):
+def verify_token(token: str, credentials_exception):
 
     try:
 
@@ -49,9 +52,10 @@ def verify_access_token(token: str, credentials_exception):
         user_id: str = payload.get("user_id")
         org_id = payload.get("org_id")
         token_type = payload.get("token_type")
+        jti = payload.get("jti")
         if user_id is None:
             raise credentials_exception
-        token_data = TokenData(user_id=user_id, org_id=org_id, token_type= token_type)
+        token_data = TokenData(user_id=user_id, org_id=org_id, token_type= token_type, jti=jti)
     except JWTError:
         raise credentials_exception
 
@@ -65,7 +69,7 @@ def get_token_payload(credentials: HTTPAuthorizationCredentials = Depends(bearer
         headers={"WWW-Authenticate": "Bearer"},
     )
     token = credentials.credentials
-    return verify_access_token(token, credentials_exception)
+    return verify_token(token, credentials_exception)
 
 
 
