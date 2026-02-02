@@ -1,11 +1,12 @@
 from fastapi import status, HTTPException, Depends, APIRouter, Request, Response
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from database.models.jti_blocklist import JtiBlocklist
 from database.models.users import Users
-from core.utils import verify, audit_logs
-from database.schemas.authorization_schemas import LoginOut, Token
+from core.utils import get_valid_refresh_payload, verify, audit_logs
+from database.schemas.authorization_schemas import LoginOut, LogoutResponse, Token
 from database.db.base import get_db
-from core.oauth2 import create_access_token, create_refresh_token, verify_access_token
+from core.oauth2 import create_access_token, create_refresh_token
 from core.config import env
 
 REFRESH_TOKEN_EXPIRE_DAYS = env.refresh_token_expire_days
@@ -86,24 +87,45 @@ def login(response: Response, request: Request, db: Session = Depends(get_db), u
     return {"access_token" : access_token, "token_type" : "bearer"}
 
 
-@router.post("/refresh_token", response_model=Token)
-def refresh_token(response: Response, request: Request):
+@router.post("/logout", response_model=LogoutResponse)
+def logout(response: Response, request: Request, db: Session = Depends(get_db)):
     
-    refresh_token_value = request.cookies.get("refresh_token")
+    payload = get_valid_refresh_payload(request, db)
     
-    if not refresh_token_value:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh Token missing")
+    jti_value = payload.jti
+    blacklisted_jti = JtiBlocklist(jti=jti_value)
+
+    try:
+        db.add(blacklisted_jti)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     
-    credentials_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Could not validate credentials",
-    headers={"WWW-Authenticate": "Bearer"},
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        secure=True,
+        samesite="none",
     )
     
-    payload = verify_access_token(token=refresh_token_value, credentials_exception=credentials_exception)
+    return {"response" : "Logged out successfully"}
+
+
+@router.post("/refresh_token", response_model=Token)
+def refresh_token(response: Response, request: Request, db: Session = Depends(get_db)):
     
-    if payload.token_type != "refresh":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+    payload = get_valid_refresh_payload(request, db)
+    
+    jti_value = payload.jti
+    blacklisted_jti = JtiBlocklist(jti=jti_value)
+
+    try:
+        db.add(blacklisted_jti)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     
     access_token_data = {
         "user_id" : payload.user_id,
