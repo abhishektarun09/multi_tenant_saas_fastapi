@@ -17,6 +17,7 @@ bearer_scheme = HTTPBearer()
 SECRET_KEY = env.secret_key
 ALGORITHM = env.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = env.access_token_expire_minutes
+REFRESH_TOKEN_EXPIRE_DAYS = env.refresh_token_expire_days
 
 
 def create_access_token(data: dict):
@@ -24,6 +25,16 @@ def create_access_token(data: dict):
 
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
+
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+    return encoded_jwt
+
+def create_refresh_token(data: dict):
+    to_encode = data.copy()
+
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp" : expire})
 
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -37,9 +48,10 @@ def verify_access_token(token: str, credentials_exception):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("user_id")
         org_id = payload.get("org_id")
+        token_type = payload.get("token_type")
         if user_id is None:
             raise credentials_exception
-        token_data = TokenData(user_id=user_id, org_id=org_id)
+        token_data = TokenData(user_id=user_id, org_id=org_id, token_type= token_type)
     except JWTError:
         raise credentials_exception
 
