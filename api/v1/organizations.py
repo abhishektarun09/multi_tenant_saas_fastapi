@@ -65,6 +65,7 @@ def select_organization(organization: SelectOrganization, db: Session = Depends(
     jwt_data = {
         "user_id" : user_id,
         "org_id" : org_id,
+        "token_type" : "access"
     }
     
     jwt_token = create_access_token(jwt_data)
