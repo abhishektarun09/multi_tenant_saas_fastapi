@@ -1,6 +1,6 @@
 from fastapi import status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
-from core.oauth2 import get_current_user
+from core.oauth2 import get_current_user, get_user_and_membership
 from database.models.organization_member import OrganizationMember
 from database.models.users import Users
 from core.utils import hash
@@ -42,10 +42,13 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 @router.get("/me", response_model=Me)
-def me(db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
+def me(db: Session = Depends(get_db), current_user_and_membership = Depends(get_user_and_membership)):
     
-    user = db.query(Users).filter(Users.id == current_user.id).first()
-    return user
+    current_user, membership = current_user_and_membership
+    
+    user_details = db.query(Users).filter(Users.id == current_user.id, ).first()
+    
+    return {"email": user_details.email, "name": user_details.name, "role" : membership.role}
 
 @router.get("/list_orgs", response_model=ListOrgs)
 def list_orgs(db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
