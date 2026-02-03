@@ -21,3 +21,4 @@ class UserOut(BaseModel):
 class Me(BaseModel):
     email: EmailStr
     name: str
+    role: str
