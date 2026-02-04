@@ -22,3 +22,11 @@ class Me(BaseModel):
     email: EmailStr
     name: str
     role: str
+    
+class UpdatePasswordOut(BaseModel):
+    response: str
+    action_required: str
+    
+class UpdatePasswordIn(BaseModel):
+    current_password: str
+    new_password: str
