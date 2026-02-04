@@ -4,8 +4,8 @@ from core.oauth2 import get_current_user, get_user_and_membership
 from database.models.organization_member import OrganizationMember
 from database.models.users import Users
 from core.utils import hash
-from database.schemas.organization_schemas import ListOrgs
-from database.schemas.user_schemas import UserCreate, UserOut, Me
+from api.v1.schemas.organization_schemas import ListOrgs
+from api.v1.schemas.user_schemas import UserCreate, UserOut, Me
 from database.db.base import get_db
 
 router = APIRouter(

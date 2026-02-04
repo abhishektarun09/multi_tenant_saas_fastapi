@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from core.config import env
 from database.models.users import Users
 from database.models.organization_member import OrganizationMember
-from database.schemas.authorization_schemas import TokenData
+from api.v1.schemas.authorization_schemas import TokenData
 from database.db.base import get_db
 from typing import Tuple
 

@@ -3,8 +3,8 @@ from psycopg2 import IntegrityError
 from sqlalchemy.orm import Session
 from database.models.organization import Organization
 from database.models.organization_member import OrganizationMember
-from database.schemas.authorization_schemas import Token
-from database.schemas.organization_schemas import OrganizationCreate, OrganizationOut, SelectOrganization, AddUsers, AddUsersOut
+from api.v1.schemas.authorization_schemas import Token
+from api.v1.schemas.organization_schemas import OrganizationCreate, OrganizationOut, SelectOrganization, AddUsers, AddUsersOut
 from database.models.users import Users
 from database.db.base import get_db
 from core.utils import slugify, audit_logs
