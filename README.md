@@ -6,7 +6,7 @@ A robust, multi-tenant SaaS backend architecture built with a modern Python stac
 
 ## Tech Stack
 
-* **Framework:** [Flask](https://flask.palletsprojects.com/)
+* **Framework:** [FastAPI](https://fastapi.tiangolo.com/)
 * **Data Validation:** [Pydantic](https://docs.pydantic.dev/) (Strict type checking & serialization)
 * **Database & ORM:** [PostgreSQL](https://www.postgresql.org/) with [SQLAlchemy](https://www.sqlalchemy.org/)
 * **Migrations:** [Alembic](https://alembic.sqlalchemy.org/)
