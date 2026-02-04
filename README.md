@@ -45,6 +45,7 @@ A robust, multi-tenant SaaS backend architecture built with a modern Python stac
 | `POST` | `/users/register` | Register a new user account |
 | `GET` | `/users/me` | Retrieve current user profile |
 | `GET` | `/users/list_orgs` | List organizations associated with the user |
+| `PUT` | `/users/update_password` | Change current password |
 
 ### Organizations
 | Method | Endpoint | Description |
