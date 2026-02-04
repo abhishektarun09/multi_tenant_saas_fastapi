@@ -72,7 +72,6 @@ A robust, multi-tenant SaaS backend architecture built with a modern Python stac
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/abhishektarun09/multi_tenant_saas_fastapi.git
-   cd your-repo-name
 
 2. **Environment Variables: Create a `.env` file in the root directory using `.env.example`**
 
