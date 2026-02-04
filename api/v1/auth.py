@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database.models.jti_blocklist import JtiBlocklist
 from database.models.users import Users
 from core.utils import get_valid_refresh_payload, verify, audit_logs
-from database.schemas.authorization_schemas import LoginOut, LogoutResponse, Token
+from api.v1.schemas.authorization_schemas import LoginOut, LogoutResponse, Token
 from database.db.base import get_db
 from core.oauth2 import create_access_token, create_refresh_token
 from core.config import env

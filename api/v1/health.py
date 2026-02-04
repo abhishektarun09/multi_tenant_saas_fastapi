@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database.db.base import get_db
 from sqlalchemy import text
 
-from database.schemas.health_schemas import Health
+from api.v1.schemas.health_schemas import Health
 
 router = APIRouter(
     tags=['Health']
