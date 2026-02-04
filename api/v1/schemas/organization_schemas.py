@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
-from typing import Literal, List
+from typing import Literal, List, Dict
 from datetime import datetime
 
 from typing import Optional, Literal
@@ -27,3 +27,10 @@ class AddUsersOut(BaseModel):
 class ListOrgs(BaseModel):
     email: EmailStr
     org_ids: List[int]
+
+class UserOut(BaseModel):
+    name: str
+    email: str
+    
+class ListUsers(BaseModel):
+    user_details: List[UserOut]
