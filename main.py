@@ -15,11 +15,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(organizations.router)
-app.include_router(auth.router)
-app.include_router(health.router)
 app.include_router(projects.router)
+app.include_router(health.router)
 
 @app.get("/")
 async def root():
