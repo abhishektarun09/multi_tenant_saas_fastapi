@@ -59,6 +59,7 @@ A robust, multi-tenant SaaS backend architecture built with a modern Python stac
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `POST` | `/projects/create_project` | Create a project within the active organization |
+| `POST` | `/projects/add_user` | Add a user in active organization to the project of active organization |
 
 ---
 
