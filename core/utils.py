@@ -51,7 +51,12 @@ def audit_logs(
         endpoint=endpoint,
     )
 
-    return entry
+    try:
+        db.add(entry)
+        db.commit()
+    except Exception:
+        db.rollback()
+    
 
 def get_valid_refresh_payload(request: Request, db: Session):
     token = request.cookies.get("refresh_token")
