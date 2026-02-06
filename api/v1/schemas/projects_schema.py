@@ -16,3 +16,16 @@ class AddUsersOut(BaseModel):
 class AddUsersIn(BaseModel):
     email: EmailStr
     project_id: int
+    
+class UpdateProjectsIn(BaseModel):
+    new_name: str
+    
+class UpdateProjectsOut(BaseModel):
+    response: str
+    
+class Project(BaseModel):
+    id: int
+    name: str
+    
+class ListProjects(BaseModel):
+    project_details: List[Project]

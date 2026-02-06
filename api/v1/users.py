@@ -15,7 +15,7 @@ router = APIRouter(
 )
 
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=UserOut)
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
+def register_user(request: Request, user: UserCreate, db: Session = Depends(get_db)):
     
     # Check if user with the same email already exists
     existing_user = db.query(Users).filter(Users.email == user.email).first()
@@ -31,14 +31,21 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     user_data = user.model_dump()
     user_data['password_hash'] = hashed_password
     new_user = Users(**user_data)
-
-    try:
-        db.add(new_user)
-        db.commit()
-        db.refresh(new_user)
-    except Exception:
-        db.rollback()
-        raise
+    
+    db.add(new_user)
+    db.flush()
+    
+    audit_logs(
+            db=db,
+            actor_user_id=new_user.id,
+            action="user.registered",
+            resource_type="users",
+            resource_id=str(new_user.id),
+            meta_data={"name": user.name, "email": user.email},
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/register",
+        )
     
     return new_user
 
@@ -62,7 +69,7 @@ def list_orgs(db: Session = Depends(get_db), current_user: int = Depends(get_cur
     
     return {"email": user.email, "org_ids" : org_ids}
 
-@router.put("/update_password", response_model=UpdatePasswordOut, status_code=status.HTTP_200_OK)
+@router.patch("/update_password", response_model=UpdatePasswordOut, status_code=status.HTTP_200_OK)
 def update_password(response: Response, request: Request, input_data: UpdatePasswordIn, current_user: Users = Depends(get_current_user), db: Session = Depends(get_db)):
 
     if not verify(input_data.current_password, current_user.password_hash):
@@ -75,29 +82,22 @@ def update_password(response: Response, request: Request, input_data: UpdatePass
     
     jti_value = payload.jti
     blacklisted_jti = JtiBlocklist(jti=jti_value)
-
-    try:
-        db.add(blacklisted_jti)
-        hashed_password = hash(input_data.new_password)
-        current_user.password_hash = hashed_password
-        
-        logs = audit_logs(
-                db=db,
-                actor_user_id=current_user.id,
-                action="password_change.success",
-                resource_type="users",
-                resource_id=str(current_user.id),
-                meta_data={"email": current_user.email},
-                ip_address=request.client.host,
-                user_agent=request.headers.get("user-agent"),
-                endpoint="/update_password",
-            )
-        
-        db.add(logs)
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
+    
+    db.add(blacklisted_jti)
+    hashed_password = hash(input_data.new_password)
+    current_user.password_hash = hashed_password
+    
+    audit_logs(
+            db=db,
+            actor_user_id=current_user.id,
+            action="password.changed",
+            resource_type="users",
+            resource_id=str(current_user.id),
+            meta_data={"email": current_user.email},
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/update_password",
+        )
     
     response.delete_cookie(
         key="refresh_token",

@@ -21,27 +21,20 @@ def login(response: Response, request: Request, db: Session = Depends(get_db), u
     user = db.query(Users).filter(Users.email == user_credentials.username).first()
     
     if not user or not verify(user_credentials.password, user.password_hash):
-        logs = audit_logs(
+        audit_logs(
                     db=db,
                     action="login.failed",
                     resource_type="auth",
                     status="failed",
-                    meta_data={"reason": "invalid_credentials"},
+                    meta_data={"reason": "invalid_credentials", "email" : user_credentials.username},
                     ip_address=request.client.host,
                     user_agent=request.headers.get("user-agent"),
                     endpoint="/login",
                 )
-        try:
-            db.add(logs)
-            db.commit()
-            db.refresh(logs)
-        except Exception:
-            db.rollback()
-            raise
 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
     
-    logs = audit_logs(
+    audit_logs(
                 db=db,
                 actor_user_id=user.id,
                 action="login.success",
@@ -52,14 +45,6 @@ def login(response: Response, request: Request, db: Session = Depends(get_db), u
                 user_agent=request.headers.get("user-agent"),
                 endpoint="/login",
             )
-    
-    try:
-        db.add(logs)
-        db.commit()
-        db.refresh(logs)
-    except Exception:
-        db.rollback()
-        raise
     
     access_token_data = {
         "user_id" : user.id,

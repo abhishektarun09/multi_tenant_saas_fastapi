@@ -1,7 +1,7 @@
 from fastapi import Request, status, HTTPException, Depends, APIRouter
 from psycopg2 import IntegrityError
 from sqlalchemy.orm import Session
-from api.v1.schemas.projects_schema import AddProjectsOut, AddProjectsIn, AddUsersIn, AddUsersOut
+from api.v1.schemas.projects_schema import AddProjectsOut, AddProjectsIn, AddUsersIn, AddUsersOut, ListProjects, UpdateProjectsIn, UpdateProjectsOut
 from database.models.organization_member import OrganizationMember
 from database.models.project_member import ProjectMember
 from database.models.projects import Project
@@ -22,38 +22,53 @@ def create_project(request: Request, project_in: AddProjectsIn, db: Session = De
     user, membership = current_user_and_membership
     
     if membership.role.value not in ("owner", "admin"):
+        audit_logs(
+                db=db,
+                actor_user_id=user.id,
+                organization_id=membership.organization_id,
+                action="creation.failed",
+                resource_type="projects",
+                status="failed",
+                meta_data={"project_name": project_in.name, "role": membership.role.value},
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                endpoint="/create_project",
+            )
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to add projects to organization")
     
     project = db.query(Project).filter(Project.name == project_in.name, Project.organization_id == membership.organization_id).first()
-    
     if project:
+        audit_logs(
+                db=db,
+                actor_user_id=user.id,
+                organization_id=membership.organization_id,
+                action="creation.failed",
+                resource_type="projects",
+                status="failed",
+                meta_data={"project_name": project_in.name, "role": membership.role.value},
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                endpoint="/create_project",
+            )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project already exists")
     
     new_project = Project(name=project_in.name, organization_id=membership.organization_id, created_by=user.id)
+
+    db.add(new_project)
+    db.flush()
     
-    try:
-        db.add(new_project)
-        db.flush()
-        
-        logs = audit_logs(
-                    db=db,
-                    actor_user_id=user.id,
-                    organization_id=membership.organization_id,
-                    action="project.created",
-                    resource_type="projects",
-                    resource_id=str(new_project.id),
-                    meta_data={"name": project_in.name},
-                    ip_address=request.client.host if request.client else None,
-                    user_agent=request.headers.get("user-agent"),
-                    endpoint="/create_project",
-                )
-        
-        db.add(logs)
-        db.commit()
-    
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project already exists")
+    audit_logs(
+                db=db,
+                actor_user_id=user.id,
+                organization_id=membership.organization_id,
+                action="project.created",
+                resource_type="projects",
+                resource_id=str(new_project.id),
+                meta_data={"project_name": project_in.name},
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                endpoint="/create_project",
+            )
     
     return new_project
 
@@ -102,29 +117,104 @@ def add_user(request: Request, payload: AddUsersIn, db: Session = Depends(get_db
     new_project_member = ProjectMember(user_id = user.id,
                                        project_id = payload.project_id,
                                        )
-    try:
-        db.add(new_project_member)
-        db.flush() # needed for audit log resource_id
+
+    db.add(new_project_member)
+    db.flush() # needed for audit log resource_id
+    
+    audit_logs(
+                db=db,
+                actor_user_id=current_user.id,
+                organization_id=membership.organization_id,
+                action="user.added",
+                resource_type="projects",
+                resource_id=str(new_project_member.id),
+                meta_data={"project_id": payload.project_id,
+                            "project_name": project.name},
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                endpoint="projects//add_user",
+            )
+    
+    return new_project_member
+
+@router.put("/update_project{project_id}", response_model=UpdateProjectsOut, status_code=status.HTTP_200_OK)
+def update_project(project_id: int, request: Request, payload: UpdateProjectsIn, db: Session = Depends(get_db), current_user_and_membership = Depends(get_user_and_membership)):
+    
+    current_user, membership = current_user_and_membership
+    
+    # Check whether user is authorized or not
+    if membership.role.value not in ("owner", "admin"):
         
-        logs = audit_logs(
+        audit_logs(
                     db=db,
                     actor_user_id=current_user.id,
                     organization_id=membership.organization_id,
-                    action="user.added",
+                    action="update.failed",
                     resource_type="projects",
-                    resource_id=str(new_project_member.id),
-                    meta_data={"project_id": payload.project_id,
-                               "project_name": project.name},
+                    resource_id=str(project_id),
+                    status="failed",
+                    meta_data={"new_name": payload.new_name, "role" : membership.role.value},
                     ip_address=request.client.host if request.client else None,
                     user_agent=request.headers.get("user-agent"),
-                    endpoint="projects//add_user",
+                    endpoint="/update_project",
                 )
         
-        db.add(logs)
-        db.commit()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update projects of the organization")
     
-    except IntegrityError as e:
-        db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists in project")
+    # Check if project exists in current organization or not
+    project = db.query(Project).filter(Project.id == project_id, Project.organization_id == membership.organization_id).first()
     
-    return new_project_member
+    if not project:
+        
+        audit_logs(
+                    db=db,
+                    actor_user_id=current_user.id,
+                    organization_id=membership.organization_id,
+                    action="update.failed",
+                    resource_type="projects",
+                    resource_id=str(project_id),
+                    status="failed",
+                    meta_data={"new_name": payload.new_name, "role" : membership.role.value},
+                    ip_address=request.client.host if request.client else None,
+                    user_agent=request.headers.get("user-agent"),
+                    endpoint="/update_project",
+                )
+        
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project does not exist")
+    
+    # Update Project details
+    project.name = payload.new_name   
+       
+    audit_logs(
+                db=db,
+                actor_user_id=current_user.id,
+                organization_id=membership.organization_id,
+                action="update.success",
+                resource_type="projects",
+                resource_id=str(project.id),
+                meta_data={"new_name": payload.new_name, "role" : membership.role.value},
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get("user-agent"),
+                endpoint="/update_project",
+            )
+    
+    return {"response" : "Project updated successfully"}
+
+@router.get("/list_projects", response_model=ListProjects, status_code=status.HTTP_200_OK)
+def list_projects(db: Session = Depends(get_db), current_user_and_membership = Depends(get_user_and_membership)):
+    
+    current_user, membership = current_user_and_membership
+    
+    projects = db.query(Project.id, Project.name).filter(Project.organization_id == membership.organization_id).all()
+    
+    if not projects:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No projects in Organization")
+    
+    # List out the organizations the user is part of for frontend to select
+    
+    project_details = [
+        {"id": project.id, "name": project.name}
+        for project in projects
+    ]
+    
+    return {"project_details" : project_details}
