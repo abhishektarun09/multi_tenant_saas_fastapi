@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# Env files
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Tests & local-only
+tests/
+coverage/
+htmlcov/
+
+# Docs
+README.md
+docs/

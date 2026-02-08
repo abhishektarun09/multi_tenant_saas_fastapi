@@ -22,7 +22,7 @@ from core.config import env
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", f"postgresql+psycopg2://{env.database_username}:{env.database_password}@{env.database_hostname}:{env.database_port}/{env.database_name}")
+config.set_main_option("sqlalchemy.url", env.database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

@@ -1,5 +1,7 @@
 FROM python:3.12
 
+ENV PYTHONUNBUFFERED=1
+
 # Install system deps required for psycopg2
 RUN apt-get update && apt-get install -y \
     gcc \
@@ -21,4 +23,4 @@ RUN uv sync --frozen --no-cache
 COPY . .
 
 # Run the application.
-CMD ["/app/.venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD uv run uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}
