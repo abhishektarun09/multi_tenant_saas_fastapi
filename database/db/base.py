@@ -6,13 +6,13 @@ from core.config import env
 
 ssl_context = ssl.create_default_context()
 
-if env.dev:
+if (env.dev == "True"):
     engine = create_async_engine(
         env.database_url,
         pool_pre_ping=True,
         pool_recycle=300,
     )
-else:
+elif(env.dev == "False"):
     engine = create_async_engine(
         env.database_url,
         pool_pre_ping=True,
