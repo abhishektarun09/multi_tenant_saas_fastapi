@@ -1,8 +1,8 @@
-from pydantic import BaseModel, Field, EmailStr, ConfigDict
-from typing import Literal, List, Dict
+from pydantic import BaseModel, EmailStr, ConfigDict
+from typing import Literal, List
 from datetime import datetime
 
-from typing import Optional, Literal
+from typing import Literal
 
 class OrganizationCreate(BaseModel):
     name: str    

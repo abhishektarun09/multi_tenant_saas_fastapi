@@ -2,18 +2,18 @@ import uuid
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 from fastapi import Depends, status, HTTPException
-from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import env
 from database.models.users import Users
 from database.models.organization_member import OrganizationMember
 from api.v1.schemas.authorization_schemas import TokenData
 from database.db.base import get_db
 from typing import Tuple
+from sqlalchemy import select
 
 
 bearer_scheme = HTTPBearer()
-#oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
 SECRET_KEY = env.secret_key
 ALGORITHM = env.algorithm
@@ -61,7 +61,6 @@ def verify_token(token: str, credentials_exception):
 
     return token_data
 
-#def get_token_payload(token: str = Depends(oauth2_scheme)):
 def get_token_payload(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -73,23 +72,25 @@ def get_token_payload(credentials: HTTPAuthorizationCredentials = Depends(bearer
 
 
 
-def get_current_user(payload = Depends(get_token_payload), db: Session = Depends(get_db)):
+async def get_current_user(payload = Depends(get_token_payload), db: AsyncSession = Depends(get_db)):
 
-    user = db.query(Users).filter(Users.id == payload.user_id).first()
+    user = (await db.execute(select(Users).where(Users.id == payload.user_id))).scalars().first()
     
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     
     return user
 
-def get_membership(payload = Depends(get_token_payload), db: Session = Depends(get_db)):
+async def get_membership(payload = Depends(get_token_payload), db: AsyncSession = Depends(get_db)):
             
     org_id = payload.org_id
     
     if not org_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Organization not selected")
     
-    membership = db.query(OrganizationMember).filter(OrganizationMember.user_id == payload.user_id, OrganizationMember.organization_id == org_id).first() #admin, member etc.
+    #admin, member etc.
+    membership = (await db.execute(
+        select(OrganizationMember).where(OrganizationMember.user_id == payload.user_id, OrganizationMember.organization_id == org_id))).scalars().first()
     
     if not membership:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this organization")

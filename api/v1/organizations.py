@@ -1,6 +1,7 @@
 from fastapi import status, HTTPException, Depends, APIRouter
 from psycopg2 import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from database.models.organization import Organization
 from database.models.organization_member import OrganizationMember
 from api.v1.schemas.authorization_schemas import Token
@@ -17,12 +18,17 @@ router = APIRouter(
 
 # JWT Protected
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=OrganizationOut)
-def register_organization(organization: OrganizationCreate, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
+async def register_organization(organization: OrganizationCreate, db: AsyncSession = Depends(get_db), current_user: int = Depends(get_current_user)):
     
     slug_name = slugify(organization.name)
     
     # Check if organization with the same name already exists
-    existing_organization = db.query(Organization).filter(Organization.slug == slug_name).first()
+    existing_organization = (
+        await db.execute(
+            select(Organization).where(Organization.slug == slug_name)
+        )
+    ).scalars().first()
+    
     if existing_organization:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -35,7 +41,7 @@ def register_organization(organization: OrganizationCreate, db: Session = Depend
 
     try:
         db.add(new_organization)
-        db.flush()
+        await db.flush()
         
         membership = OrganizationMember(
             user_id = current_user.id,
@@ -43,21 +49,21 @@ def register_organization(organization: OrganizationCreate, db: Session = Depend
             role = "owner"
         )
         db.add(membership)
-        db.commit()
-        db.refresh(new_organization)
+        await db.commit()
+        await db.refresh(new_organization)
     except Exception:
-        db.rollback()
+        await db.rollback()
         raise
 
     return new_organization
 
 # JWT Protected
 @router.post("/select", status_code=status.HTTP_202_ACCEPTED, response_model=Token)
-def select_organization(organization: SelectOrganization, db: Session = Depends(get_db), current_user: int = Depends(get_current_user)):
+async def select_organization(organization: SelectOrganization, db: AsyncSession = Depends(get_db), current_user: int = Depends(get_current_user)):
     
     user_id = current_user.id
     org_id = organization.org_id
-    member = db.query(OrganizationMember).filter(OrganizationMember.organization_id == org_id, OrganizationMember.user_id == user_id).first()
+    member = (await db.execute(select(OrganizationMember).where(OrganizationMember.organization_id == org_id, OrganizationMember.user_id == user_id))).scalars().first()
     
     if not member:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not member of the organization")
@@ -73,8 +79,8 @@ def select_organization(organization: SelectOrganization, db: Session = Depends(
     return {"access_token" : jwt_token, "token_type" : "bearer"}
 
 # JWT Protected
-@router.post("/add_users", status_code=status.HTTP_201_CREATED, response_model=AddUsersOut)
-def add_users(input: AddUsers, db: Session = Depends(get_db), current_user_and_membership = Depends(get_user_and_membership)):
+@router.post("/add_user", status_code=status.HTTP_201_CREATED, response_model=AddUsersOut)
+async def add_user(input: AddUsers, db: AsyncSession = Depends(get_db), current_user_and_membership = Depends(get_user_and_membership)):
     
     user, membership = current_user_and_membership
         
@@ -84,11 +90,20 @@ def add_users(input: AddUsers, db: Session = Depends(get_db), current_user_and_m
     if membership.role.value == "admin" and input.role == "owner":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized to add owner")
             
-    user = db.query(Users).filter(Users.email == input.email).first()
+    user = (
+        await db.execute(
+            select(Users).where(Users.email == input.email)
+        )
+    ).scalars().first()
+    
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User does not exist")
     
-    member = db.query(Users).join(OrganizationMember, OrganizationMember.user_id == Users.id).filter(Users.email == input.email, OrganizationMember.organization_id == membership.organization_id).first()
+    member = (
+        await db.execute(
+            select(Users).join(OrganizationMember, OrganizationMember.user_id == Users.id).where(Users.email == input.email, OrganizationMember.organization_id == membership.organization_id)
+        )
+    ).scalars().first()
     
     if member:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already registered in Organization")  
@@ -97,27 +112,27 @@ def add_users(input: AddUsers, db: Session = Depends(get_db), current_user_and_m
     
     try:
         db.add(new_member)
-        db.commit()
+        await db.commit()
     except IntegrityError:
-        db.rollback()
+        await db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists in organization"
     )
     
     return {"message" : "User added to organization"}
 
 @router.get("/list_users", status_code=status.HTTP_200_OK, response_model=ListUsers)
-def list_users(db: Session = Depends(get_db), current_user_and_membership = Depends(get_user_and_membership)):
+async def list_users(db: AsyncSession = Depends(get_db), current_user_and_membership = Depends(get_user_and_membership)):
     
     user, membership = current_user_and_membership
     
     if membership.role.value not in ("owner", "admin"):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view users organization")
     
-    users_in_org = (db.query(Users)
-                    .join(OrganizationMember, OrganizationMember.user_id == Users.id)
-                    .filter(OrganizationMember.organization_id == membership.organization_id)
-                    .all()
-                    )
+    users_in_org = (
+        await db.execute(
+            select(Users).join(OrganizationMember, OrganizationMember.user_id == Users.id).where(OrganizationMember.organization_id == membership.organization_id)
+        )
+    ).scalars().all()
     
     if not users_in_org:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No users in Organization")
