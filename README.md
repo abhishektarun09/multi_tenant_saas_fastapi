@@ -66,6 +66,7 @@ Deployed on Render : https://multi-tenant-saas-fastapi.onrender.com/docs
 | `POST` | `/project/add_user` | Add a user in active organization to the project of active organization |
 | `PUT` | `/project/update/{project_id}` | Update project in the active organization |
 | `GET` | `/project/list` | List all projects of active organization |
+| `GET` | `/project//members/{project_id}` | View all members of a particular project in active organization |
 
 ---
 
