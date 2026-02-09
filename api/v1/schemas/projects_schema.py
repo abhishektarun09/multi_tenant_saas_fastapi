@@ -29,3 +29,10 @@ class Project(BaseModel):
     
 class ListProjects(BaseModel):
     project_details: List[Project]
+    
+class ProjectMembersOut(BaseModel):
+    name: str
+    email: str
+    
+class ListMembers(BaseModel):
+    member_details: List[ProjectMembersOut]
