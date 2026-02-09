@@ -20,4 +20,4 @@ def readiness(db: Session = Depends(get_db)):
     except Exception:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="DB not ready")
 
-    return {"status": "ready"}
+    return {"status": "db ready"}
