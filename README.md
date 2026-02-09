@@ -2,6 +2,8 @@
 
 A robust, multi-tenant SaaS backend architecture built with a modern Python stack. This project serves as a scalable foundation for applications requiring complex organization management, secure authentication, and Role-Based Access Control (RBAC).
 
+Deployed on Render : https://multi-tenant-saas-fastapi.onrender.com/docs
+
 ---
 
 ## Tech Stack
@@ -12,6 +14,7 @@ A robust, multi-tenant SaaS backend architecture built with a modern Python stac
 * **Migrations:** [Alembic](https://alembic.sqlalchemy.org/)
 * **Containerization:** [Docker](https://www.docker.com/) & Docker Compose
 * **Security:** JWT with Access/Refresh Token Rotation
+* **Deployment:** PostgreSQL Database on [Neon](https://neon.com/) and FastAPI server on [Render](https://render.com/)
 
 ---
 
@@ -21,6 +24,7 @@ A robust, multi-tenant SaaS backend architecture built with a modern Python stac
 * **Advanced Auth:** JWT-based authentication featuring **Token Rotation** to mitigate replay attacks.
 * **RBAC Logic:** Granular access control to manage user permissions within specific organizations.
 * **Schema Consistency:** Unified data flow using Pydantic schemas for request validation and response serialization.
+* **Async:** APIs with async capabilities. 
 
 ---
 
@@ -30,7 +34,7 @@ A robust, multi-tenant SaaS backend architecture built with a modern Python stac
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/health` | Liveness check |
-| `GET` | `/health/ready` | Readiness probe for orchestration |
+| `GET` | `/health/db` | Readiness probe for orchestration and db status |
 
 ### Authentication
 | Method | Endpoint | Description |
@@ -42,24 +46,26 @@ A robust, multi-tenant SaaS backend architecture built with a modern Python stac
 ### Users
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/users/register` | Register a new user account |
-| `GET` | `/users/me` | Retrieve current user profile |
-| `GET` | `/users/list_orgs` | List organizations associated with the user |
-| `PUT` | `/users/update_password` | Change current password |
+| `POST` | `/user/register` | Register a new user account |
+| `GET` | `/user/me` | Retrieve current user profile |
+| `GET` | `/user/orgs` | List organizations associated with the user |
+| `PATCH` | `/user/update_password` | Change current password |
 
 ### Organizations
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `POST` | `/organization/register` | Create a new organization |
 | `POST` | `/organization/select` | Context-switch into a specific organization |
-| `POST` | `/organization/add_users` | Invite/Add users to an organization |
+| `POST` | `/organization/add_user` | Invite/Add users to an organization |
 | `GET` | `/organization/list_users` | View all members of the active organization |
 
 ### Projects
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/projects/create_project` | Create a project within the active organization |
-| `POST` | `/projects/add_user` | Add a user in active organization to the project of active organization |
+| `POST` | `/project/create` | Create a project within the active organization |
+| `POST` | `/project/add_user` | Add a user in active organization to the project of active organization |
+| `PUT` | `/project/update/{project_id}` | Update project in the active organization |
+| `GET` | `/project/list` | List all projects of active organization |
 
 ---
 
@@ -67,7 +73,7 @@ A robust, multi-tenant SaaS backend architecture built with a modern Python stac
 
 ### Prerequisites
 * Docker & Docker Compose
-* Python 3.10+ (for local development)
+* Python 3.12+ (for local development)
 
 ### Installation & Setup
 
