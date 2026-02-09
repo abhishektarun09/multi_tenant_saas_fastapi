@@ -66,7 +66,6 @@ def login(response: Response, request: Request, db: Session = Depends(get_db), u
         secure=True,
         samesite="strict",
         max_age=(REFRESH_TOKEN_EXPIRE_DAYS * 60 * 60 * 24),
-        path="/refresh_token",
     )
     
     
@@ -93,7 +92,6 @@ def logout(response: Response, request: Request, db: Session = Depends(get_db)):
         httponly=True,
         secure=True,
         samesite="strict",
-        path="/refresh_token",
     )
     
     return {"response" : "Logged out successfully"}
@@ -134,7 +132,6 @@ def refresh_token(response: Response, request: Request, db: Session = Depends(ge
         secure=True,
         samesite="strict",
         max_age=(REFRESH_TOKEN_EXPIRE_DAYS * 60 * 60 * 24),
-        path="/refresh_token",
     )
     
     return {"access_token" : access_token, "token_type" : "bearer"}
