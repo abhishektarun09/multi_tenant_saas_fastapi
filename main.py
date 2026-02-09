@@ -5,7 +5,11 @@ from api.v1 import users, organizations, auth, health, projects
 
 app = FastAPI()
 
-origins = ["*"]
+origins = [
+        "http://localhost",
+        "http://localhost:8000",
+        "https://multi-tenant-saas-fastapi.onrender.com",
+    ]
 
 app.add_middleware(
     CORSMiddleware,
