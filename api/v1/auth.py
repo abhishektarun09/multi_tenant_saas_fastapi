@@ -1,6 +1,7 @@
 from fastapi import status, HTTPException, Depends, APIRouter, Request, Response
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from database.models.jti_blocklist import JtiBlocklist
 from database.models.users import Users
 from core.utils import get_valid_refresh_payload, verify, audit_logs
@@ -16,12 +17,14 @@ router = APIRouter(
 )
 
 @router.post("/login", response_model=LoginOut)
-def login(response: Response, request: Request, db: Session = Depends(get_db), user_credentials: OAuth2PasswordRequestForm = Depends()):
-    
-    user = db.query(Users).filter(Users.email == user_credentials.username).first()
+async def login(response: Response, request: Request, db: AsyncSession = Depends(get_db), user_credentials: OAuth2PasswordRequestForm = Depends()):
+      
+    stmt = select(Users).where(Users.email == user_credentials.username)
+    result = await db.execute(stmt)
+    user = result.scalars().first()
     
     if not user or not verify(user_credentials.password, user.password_hash):
-        audit_logs(
+        await audit_logs(
                     db=db,
                     action="login.failed",
                     resource_type="auth",
@@ -34,7 +37,7 @@ def login(response: Response, request: Request, db: Session = Depends(get_db), u
 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
     
-    audit_logs(
+    await audit_logs(
                 db=db,
                 actor_user_id=user.id,
                 action="login.success",
@@ -73,18 +76,18 @@ def login(response: Response, request: Request, db: Session = Depends(get_db), u
 
 
 @router.post("/logout", response_model=LogoutResponse)
-def logout(response: Response, request: Request, db: Session = Depends(get_db)):
+async def logout(response: Response, request: Request, db: AsyncSession = Depends(get_db)):
     
-    payload = get_valid_refresh_payload(request, db)
+    payload = await get_valid_refresh_payload(request, db)
     
     jti_value = payload.jti
     blacklisted_jti = JtiBlocklist(jti=jti_value)
 
     try:
         db.add(blacklisted_jti)
-        db.commit()
+        await db.commit()
     except Exception:
-        db.rollback()
+        await db.rollback()
         raise
     
     response.delete_cookie(
@@ -98,18 +101,18 @@ def logout(response: Response, request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/refresh_token", response_model=Token)
-def refresh_token(response: Response, request: Request, db: Session = Depends(get_db)):
+async def refresh_token(response: Response, request: Request, db: AsyncSession = Depends(get_db)):
     
-    payload = get_valid_refresh_payload(request, db)
+    payload = await get_valid_refresh_payload(request, db)
     
     jti_value = payload.jti
     blacklisted_jti = JtiBlocklist(jti=jti_value)
 
     try:
         db.add(blacklisted_jti)
-        db.commit()
+        await db.commit()
     except Exception:
-        db.rollback()
+        await db.rollback()
         raise
     
     access_token_data = {

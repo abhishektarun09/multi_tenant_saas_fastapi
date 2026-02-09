@@ -1,16 +1,12 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Literal, List
 from datetime import datetime
 from pydantic import ConfigDict
 
-from typing import Optional, Literal
-
 class UserCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1)
     email: EmailStr
-    password_hash: str
+    password: str = Field(..., min_length=8)
     
-
 class UserOut(BaseModel):
     id: int
     email: EmailStr
