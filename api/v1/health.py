@@ -13,11 +13,13 @@ router = APIRouter(
 def health():
     return {"status": "ok"}
 
-@router.get("/health/db", response_model=Health, status_code=status.HTTP_200_OK)
+@router.get("/health/db", response_model=Health)
 async def check_db(db: AsyncSession = Depends(get_db)):
-    try:       
+    try:
         await db.execute(text("SELECT 1"))
+        return {"status": "db ready"}
     except Exception:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="DB not ready")
-
-    return {"status": "db ready"}
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="DB not ready",
+        )
