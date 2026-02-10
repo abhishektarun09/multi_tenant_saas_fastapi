@@ -55,6 +55,7 @@ Deployed on Render : https://multi-tenant-saas-fastapi.onrender.com/docs
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `POST` | `/organization/register` | Create a new organization |
+| `PUT` | `/organization/update` | Update the Organization details |
 | `POST` | `/organization/select` | Context-switch into a specific organization |
 | `POST` | `/organization/add_user` | Invite/Add users to an organization |
 | `GET` | `/organization/list_users` | View all members of the active organization |

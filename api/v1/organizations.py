@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models.organization import Organization
 from database.models.organization_member import OrganizationMember
 from api.v1.schemas.authorization_schemas import Token
-from api.v1.schemas.organization_schemas import ListUsers, OrganizationCreate, OrganizationOut, SelectOrganization, AddUsers, AddUsersOut
+from api.v1.schemas.organization_schemas import ListUsers, OrganizationCreate, OrganizationOut, SelectOrganization, AddUsers, AddUsersOut, UpdateOrgIn, UpdateOrgOut
 from database.models.users import Users
 from database.db.base import get_db
 from core.utils import slugify, audit_logs
@@ -15,6 +15,27 @@ router = APIRouter(
     prefix="/organization",
     tags=['Organizations']
 )
+
+# JWT Protected
+@router.post("/select", status_code=status.HTTP_202_ACCEPTED, response_model=Token)
+async def select_organization(organization: SelectOrganization, db: AsyncSession = Depends(get_db), current_user: int = Depends(get_current_user)):
+    
+    user_id = current_user.id
+    org_id = organization.org_id
+    member = (await db.execute(select(OrganizationMember).where(OrganizationMember.organization_id == org_id, OrganizationMember.user_id == user_id))).scalars().first()
+    
+    if not member:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not member of the organization")
+    
+    jwt_data = {
+        "user_id" : user_id,
+        "org_id" : org_id,
+        "token_type" : "access"
+    }
+    
+    jwt_token = create_access_token(jwt_data)
+    
+    return {"access_token" : jwt_token, "token_type" : "bearer"}
 
 # JWT Protected
 @router.post("/register", status_code=status.HTTP_201_CREATED, response_model=OrganizationOut)
@@ -57,26 +78,38 @@ async def register_organization(organization: OrganizationCreate, db: AsyncSessi
 
     return new_organization
 
-# JWT Protected
-@router.post("/select", status_code=status.HTTP_202_ACCEPTED, response_model=Token)
-async def select_organization(organization: SelectOrganization, db: AsyncSession = Depends(get_db), current_user: int = Depends(get_current_user)):
+@router.put("/update", status_code=status.HTTP_201_CREATED, response_model=UpdateOrgOut)
+async def update(payload: UpdateOrgIn, db: AsyncSession = Depends(get_db), current_user_and_membership = Depends(get_user_and_membership)):
     
-    user_id = current_user.id
-    org_id = organization.org_id
-    member = (await db.execute(select(OrganizationMember).where(OrganizationMember.organization_id == org_id, OrganizationMember.user_id == user_id))).scalars().first()
+    user, membership = current_user_and_membership
     
-    if not member:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not member of the organization")
+    if membership.role.value not in ("owner", "admin"):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized to add users to organization")
     
-    jwt_data = {
-        "user_id" : user_id,
-        "org_id" : org_id,
-        "token_type" : "access"
-    }
+    new_slug_name = slugify(payload.new_name)
     
-    jwt_token = create_access_token(jwt_data)
+    existing_organization = (
+        await db.execute(
+            select(Organization).where(Organization.slug == new_slug_name)
+        )
+    ).scalars().first()
     
-    return {"access_token" : jwt_token, "token_type" : "bearer"}
+    if existing_organization:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Organization already registered"
+        )
+    
+    updated_org = Organization(name=payload.new_name, slug=new_slug_name)
+    
+    try:
+        db.add(updated_org)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+        
+    return {"message" : "Organization details updated"}
 
 # JWT Protected
 @router.post("/add_user", status_code=status.HTTP_201_CREATED, response_model=AddUsersOut)
