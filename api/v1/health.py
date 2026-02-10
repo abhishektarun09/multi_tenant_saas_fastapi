@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from database.db.base import get_db
+from database.db.session import get_db
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.v1.schemas.health_schemas import Health
 
-router = APIRouter(
-    tags=['Health']
-)
+router = APIRouter(tags=["Health"])
+
 
 @router.get("/health", response_model=Health, status_code=status.HTTP_200_OK)
 def health():
     return {"status": "ok"}
+
 
 @router.get("/health/db", response_model=Health)
 async def check_db(db: AsyncSession = Depends(get_db)):
