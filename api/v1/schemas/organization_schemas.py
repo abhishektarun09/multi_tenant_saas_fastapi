@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from typing import Literal, List
 from datetime import datetime
 
@@ -34,3 +34,9 @@ class UserOut(BaseModel):
     
 class ListUsers(BaseModel):
     user_details: List[UserOut]
+    
+class UpdateOrgIn(BaseModel):
+    new_name : str = Field(..., min_length=1)
+    
+class UpdateOrgOut(BaseModel):
+    message: str
