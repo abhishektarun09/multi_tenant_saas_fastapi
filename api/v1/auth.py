@@ -23,7 +23,10 @@ async def login(
     user_credentials: OAuth2PasswordRequestForm = Depends(),
 ):
 
-    stmt = select(Users).where(Users.email == user_credentials.username)
+    stmt = select(Users).where(
+        Users.email == user_credentials.username,
+        Users.is_deleted == False,
+    )
     result = await db.execute(stmt)
     user = result.scalars().first()
 

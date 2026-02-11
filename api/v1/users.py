@@ -27,7 +27,13 @@ async def register_user(
     # Check if user with the same email already exists
 
     existing_user = (
-        (await db.execute(select(Users).where(Users.email == user.email)))
+        (
+            await db.execute(
+                select(Users).where(
+                    Users.email == user.email, Users.is_deleted == False
+                )
+            )
+        )
         .scalars()
         .first()
     )
@@ -71,7 +77,13 @@ async def me(
     current_user, membership = current_user_and_membership
 
     user_details = (
-        (await db.execute(select(Users).where(Users.id == current_user.id)))
+        (
+            await db.execute(
+                select(Users).where(
+                    Users.id == current_user.id, Users.is_deleted == False
+                )
+            )
+        )
         .scalars()
         .first()
     )
@@ -89,7 +101,13 @@ async def list_orgs(
 ):
 
     user = (
-        (await db.execute(select(Users).where(Users.id == current_user.id)))
+        (
+            await db.execute(
+                select(Users).where(
+                    Users.id == current_user.id, Users.is_deleted == False
+                )
+            )
+        )
         .scalars()
         .first()
     )

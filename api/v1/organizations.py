@@ -73,7 +73,14 @@ async def register_organization(
 
     # Check if organization with the same name already exists
     existing_organization = (
-        (await db.execute(select(Organization).where(Organization.slug == slug_name)))
+        (
+            await db.execute(
+                select(Organization).where(
+                    Organization.slug == slug_name,
+                    Organization.is_deleted == False,
+                )
+            )
+        )
         .scalars()
         .first()
     )
@@ -125,7 +132,10 @@ async def update(
     existing_organization = (
         (
             await db.execute(
-                select(Organization).where(Organization.slug == new_slug_name)
+                select(Organization).where(
+                    Organization.slug == new_slug_name,
+                    Organization.is_deleted == False,
+                )
             )
         )
         .scalars()
@@ -175,7 +185,14 @@ async def add_user(
         )
 
     user = (
-        (await db.execute(select(Users).where(Users.email == input.email)))
+        (
+            await db.execute(
+                select(Users).where(
+                    Users.email == input.email,
+                    Users.is_deleted == False,
+                )
+            )
+        )
         .scalars()
         .first()
     )
@@ -193,6 +210,7 @@ async def add_user(
                 .where(
                     Users.email == input.email,
                     OrganizationMember.organization_id == membership.organization_id,
+                    Users.is_deleted == False,
                 )
             )
         )
@@ -242,7 +260,10 @@ async def list_users(
             await db.execute(
                 select(Users)
                 .join(OrganizationMember, OrganizationMember.user_id == Users.id)
-                .where(OrganizationMember.organization_id == membership.organization_id)
+                .where(
+                    OrganizationMember.organization_id == membership.organization_id,
+                    Users.is_deleted == False,
+                )
             )
         )
         .scalars()

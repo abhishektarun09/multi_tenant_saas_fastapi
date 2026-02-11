@@ -59,6 +59,7 @@ async def create_project(
                 select(Project).where(
                     Project.name == project_in.name,
                     Project.organization_id == membership.organization_id,
+                    Project.is_deleted == False,
                 )
             )
         )
@@ -128,7 +129,13 @@ async def add_user(
 
     # 2. Fetch user
     user = (
-        (await db.execute(select(Users).where(Users.email == payload.email)))
+        (
+            await db.execute(
+                select(Users).where(
+                    Users.email == payload.email, Users.is_deleted == False
+                )
+            )
+        )
         .scalars()
         .first()
     )
@@ -165,6 +172,7 @@ async def add_user(
                 select(Project).where(
                     Project.id == payload.project_id,
                     Project.organization_id == membership.organization_id,
+                    Project.is_deleted == False,
                 )
             )
         )
@@ -266,6 +274,7 @@ async def update_project(
                 select(Project).where(
                     Project.id == project_id,
                     Project.organization_id == membership.organization_id,
+                    Project.is_deleted == False,
                 )
             )
         )
@@ -299,6 +308,7 @@ async def update_project(
                 select(Project).where(
                     Project.name == payload.new_name,
                     Project.organization_id == membership.organization_id,
+                    Project.is_deleted == False,
                 )
             )
         )
@@ -358,7 +368,8 @@ async def list_projects(
         (
             await db.execute(
                 select(Project).where(
-                    Project.organization_id == membership.organization_id
+                    Project.organization_id == membership.organization_id,
+                    Project.is_deleted == False,
                 )
             )
         )
@@ -401,6 +412,7 @@ async def list_members(
                 select(Project).where(
                     Project.organization_id == membership.organization_id,
                     Project.id == project_id,
+                    Project.is_deleted == False,
                 )
             )
         )
@@ -422,6 +434,8 @@ async def list_members(
                 .where(
                     Project.organization_id == membership.organization_id,
                     Project.id == project_id,
+                    Project.is_deleted == False,
+                    Users.is_deleted == False,
                 )
             )
         )
