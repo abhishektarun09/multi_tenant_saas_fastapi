@@ -1,5 +1,4 @@
-from fastapi import status, HTTPException, Depends, APIRouter
-from psycopg2 import IntegrityError
+from fastapi import Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.models.organization import Organization
@@ -64,6 +63,7 @@ async def select_organization(
     "/register", status_code=status.HTTP_201_CREATED, response_model=OrganizationOut
 )
 async def register_organization(
+    request: Request,
     organization: OrganizationCreate,
     db: AsyncSession = Depends(get_db),
     current_user: int = Depends(get_current_user),
@@ -86,6 +86,18 @@ async def register_organization(
     )
 
     if existing_organization:
+
+        await audit_logs(
+            db=db,
+            actor_user_id=current_user.id,
+            action="creation.failed",
+            resource_type="organizations",
+            status="failed",
+            meta_data={"org_slug": slug_name},
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/organization/register",
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Organization already registered",
@@ -95,25 +107,33 @@ async def register_organization(
     new_organization["slug"] = slug_name
     new_organization = Organization(**new_organization)
 
-    try:
-        db.add(new_organization)
-        await db.flush()
+    db.add(new_organization)
+    await db.flush()
 
-        membership = OrganizationMember(
-            user_id=current_user.id, organization_id=new_organization.id, role="owner"
-        )
-        db.add(membership)
-        await db.commit()
-        await db.refresh(new_organization)
-    except Exception:
-        await db.rollback()
-        raise
+    membership = OrganizationMember(
+        user_id=current_user.id, organization_id=new_organization.id, role="owner"
+    )
+    db.add(membership)
+
+    await audit_logs(
+        db=db,
+        actor_user_id=current_user.id,
+        action="org.registered",
+        resource_type="organizations",
+        resource_id=str(new_organization.id),
+        status="success",
+        meta_data={"org_slug": slug_name},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        endpoint="/organization/register",
+    )
 
     return new_organization
 
 
 @router.put("/update", status_code=status.HTTP_201_CREATED, response_model=UpdateOrgOut)
 async def update(
+    request: Request,
     payload: UpdateOrgIn,
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
@@ -122,6 +142,19 @@ async def update(
     user, membership = current_user_and_membership
 
     if membership.role.value not in ("owner", "admin"):
+        await audit_logs(
+            db=db,
+            actor_user_id=user.id,
+            action="update.failed",
+            resource_type="organizations",
+            organization_id=membership.organization_id,
+            resource_id=str(membership.organization_id),
+            status="failed",
+            meta_data={"new_name": payload.new_name, "role": membership.role.value},
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/organization/update",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to add users to organization",
@@ -143,6 +176,19 @@ async def update(
     )
 
     if existing_organization:
+        await audit_logs(
+            db=db,
+            actor_user_id=user.id,
+            action="update.failed",
+            resource_type="organizations",
+            organization_id=membership.organization_id,
+            resource_id=str(membership.organization_id),
+            status="failed",
+            meta_data={"new_name": payload.new_name, "role": membership.role.value},
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/organization/update",
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Organization already registered",
@@ -150,12 +196,20 @@ async def update(
 
     updated_org = Organization(name=payload.new_name, slug=new_slug_name)
 
-    try:
-        db.add(updated_org)
-        await db.commit()
-    except Exception:
-        await db.rollback()
-        raise
+    db.add(updated_org)
+    await audit_logs(
+        db=db,
+        actor_user_id=user.id,
+        action="org.updated",
+        resource_type="organizations",
+        organization_id=membership.organization_id,
+        resource_id=str(membership.organization_id),
+        status="success",
+        meta_data={"new_name": payload.new_name, "role": membership.role.value},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        endpoint="/organization/update",
+    )
 
     return {"message": "Organization details updated"}
 
@@ -165,26 +219,55 @@ async def update(
     "/add_user", status_code=status.HTTP_201_CREATED, response_model=AddUsersOut
 )
 async def add_user(
+    request: Request,
     input: AddUsers,
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
 ):
 
-    user, membership = current_user_and_membership
+    current_user, membership = current_user_and_membership
 
     if membership.role.value not in ("owner", "admin"):
+        await audit_logs(
+            db=db,
+            actor_user_id=current_user.id,
+            action="addition.failed",
+            resource_type="organizations",
+            organization_id=membership.organization_id,
+            status="failed",
+            meta_data={"email": input.email, "role": membership.role.value},
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/organization/add_user",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to add users to organization",
         )
 
     if membership.role.value == "admin" and input.role == "owner":
+        await audit_logs(
+            db=db,
+            actor_user_id=current_user.id,
+            action="addition.failed",
+            resource_type="organizations",
+            organization_id=membership.organization_id,
+            status="failed",
+            meta_data={
+                "reason": "admin trying to add owner",
+                "email": input.email,
+                "role": membership.role.value,
+            },
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/organization/add_user",
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authorized to add owner",
         )
 
-    user = (
+    existing_user = (
         (
             await db.execute(
                 select(Users).where(
@@ -197,7 +280,19 @@ async def add_user(
         .first()
     )
 
-    if not user:
+    if not existing_user:
+        await audit_logs(
+            db=db,
+            actor_user_id=current_user.id,
+            action="addition.failed",
+            resource_type="organizations",
+            organization_id=membership.organization_id,
+            status="failed",
+            meta_data={"email": input.email, "role": membership.role.value},
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/organization/add_user",
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User does not exist"
         )
@@ -219,24 +314,42 @@ async def add_user(
     )
 
     if member:
+        await audit_logs(
+            db=db,
+            actor_user_id=current_user.id,
+            action="addition.failed",
+            resource_type="organizations",
+            organization_id=membership.organization_id,
+            status="failed",
+            meta_data={"email": input.email, "role": membership.role.value},
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/organization/add_user",
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User already registered in Organization",
         )
 
     new_member = OrganizationMember(
-        user_id=user.id, organization_id=membership.organization_id, role=input.role
+        user_id=existing_user.id,
+        organization_id=membership.organization_id,
+        role=input.role,
     )
 
-    try:
-        db.add(new_member)
-        await db.commit()
-    except IntegrityError:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User already exists in organization",
-        )
+    db.add(new_member)
+    await audit_logs(
+        db=db,
+        actor_user_id=current_user.id,
+        action="user.added",
+        resource_type="organizations",
+        organization_id=membership.organization_id,
+        status="success",
+        meta_data={"email": input.email, "role": membership.role.value},
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+        endpoint="/organization/add_user",
+    )
 
     return {"message": "User added to organization"}
 
