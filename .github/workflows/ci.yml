@@ -22,9 +22,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      # --- Install dependencies ---
+      # --- Install uv ---
       - name: Install the latest version of uv
         uses: astral-sh/setup-uv@v7
+
+      # --- Install dependencies ---
+      - name: UV sync
         run: |
           uv sync --frozen --no-cache
 
