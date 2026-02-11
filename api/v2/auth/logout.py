@@ -1,0 +1,36 @@
+from fastapi import Depends, APIRouter, Request, Response
+from sqlalchemy.ext.asyncio import AsyncSession
+from database.models.jti_blocklist import JtiBlocklist
+from core.utils import get_valid_refresh_payload
+from api.v2.schemas.authorization_schemas import LogoutResponse
+from database.db.session import get_db
+from core.config import env
+
+router = APIRouter()
+
+
+@router.post("/logout", response_model=LogoutResponse)
+async def logout(
+    response: Response, request: Request, db: AsyncSession = Depends(get_db)
+):
+
+    payload = await get_valid_refresh_payload(request, db)
+
+    jti_value = payload.jti
+    blacklisted_jti = JtiBlocklist(jti=jti_value)
+
+    try:
+        db.add(blacklisted_jti)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        secure=True,
+        samesite="strict",
+    )
+
+    return {"response": "Logged out successfully"}

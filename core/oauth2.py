@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import env
 from database.models.users import Users
 from database.models.organization_member import OrganizationMember
-from api.v1.schemas.authorization_schemas import TokenData
+from api.v2.schemas.authorization_schemas import TokenData
 from database.db.session import get_db
 from typing import Tuple
 from sqlalchemy import select
