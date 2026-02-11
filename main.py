@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.v1 import users, organizations, auth, health, projects
+from api.v2 import users, organizations, auth, health, projects
 
 app = FastAPI()
 
