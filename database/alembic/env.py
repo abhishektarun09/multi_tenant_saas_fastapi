@@ -9,20 +9,14 @@ from sqlalchemy import pool
 from alembic import context
 
 from database.db.base import Base
-from database.models.users import Users
-from database.models.projects import Project
-from database.models.organization_member import OrganizationMember
-from database.models.organization import Organization
-from database.models.audit_log import AuditLog
-from database.models.jti_blocklist import JtiBlocklist
-from database.models.project_member import ProjectMember
+from database.models import *
 
 from core.config import env
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-config.set_main_option("sqlalchemy.url", env.database_url)
+config.set_main_option("sqlalchemy.url", env.database_url.replace("asyncpg", "psycopg2"))
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.

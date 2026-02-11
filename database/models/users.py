@@ -19,6 +19,7 @@ class Users(Base):
     password_hash = Column(String(255), nullable=False)
     is_verified = Column(Boolean, default=False)
     status = Column(Enum(UserStatus, name="user_status"), nullable=False, server_default=text("'active'"))
+    is_deleted = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
     updated_at_time = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'), server_onupdate=text("now()"))
     

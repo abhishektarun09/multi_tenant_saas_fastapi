@@ -6,62 +6,74 @@ from database.models.jti_blocklist import JtiBlocklist
 from database.models.users import Users
 from core.utils import get_valid_refresh_payload, verify, audit_logs
 from api.v1.schemas.authorization_schemas import LoginOut, LogoutResponse, Token
-from database.db.base import get_db
+from database.db.session import get_db
 from core.oauth2 import create_access_token, create_refresh_token
 from core.config import env
 
 REFRESH_TOKEN_EXPIRE_DAYS = env.refresh_token_expire_days
 
-router = APIRouter(
-    tags=['Authentication']
-)
+router = APIRouter(tags=["Authentication"])
+
 
 @router.post("/login", response_model=LoginOut)
-async def login(response: Response, request: Request, db: AsyncSession = Depends(get_db), user_credentials: OAuth2PasswordRequestForm = Depends()):
-      
-    stmt = select(Users).where(Users.email == user_credentials.username)
+async def login(
+    response: Response,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user_credentials: OAuth2PasswordRequestForm = Depends(),
+):
+
+    stmt = select(Users).where(
+        Users.email == user_credentials.username,
+        Users.is_deleted == False,
+    )
     result = await db.execute(stmt)
     user = result.scalars().first()
-    
+
     if not user or not verify(user_credentials.password, user.password_hash):
         await audit_logs(
-                    db=db,
-                    action="login.failed",
-                    resource_type="auth",
-                    status="failed",
-                    meta_data={"reason": "invalid_credentials", "email" : user_credentials.username},
-                    ip_address=request.client.host,
-                    user_agent=request.headers.get("user-agent"),
-                    endpoint="/login",
-                )
+            db=db,
+            action="login.failed",
+            resource_type="auth",
+            status="failed",
+            meta_data={
+                "reason": "invalid_credentials",
+                "email": user_credentials.username,
+            },
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/login",
+        )
 
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials")
-    
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials"
+        )
+
     await audit_logs(
-                db=db,
-                actor_user_id=user.id,
-                action="login.success",
-                resource_type="auth",
-                resource_id=str(user.id),
-                meta_data={"email": user.email},
-                ip_address=request.client.host,
-                user_agent=request.headers.get("user-agent"),
-                endpoint="/login",
-            )
-    
+        db=db,
+        actor_user_id=user.id,
+        action="login.success",
+        resource_type="auth",
+        resource_id=str(user.id),
+        meta_data={"email": user.email},
+        ip_address=request.client.host,
+        user_agent=request.headers.get("user-agent"),
+        endpoint="/login",
+    )
+
     access_token_data = {
-        "user_id" : user.id,
-        "token_type" : "access",
+        "user_id": user.id,
+        "token_type": "access",
     }
-    
+
     refresh_token_data = {
-        "user_id" : user.id,
-        "token_type" : "refresh",
+        "user_id": user.id,
+        "token_type": "refresh",
     }
-    
+
     access_token = create_access_token(access_token_data)
     refresh_token = create_refresh_token(refresh_token_data)
-    
+
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -70,16 +82,17 @@ async def login(response: Response, request: Request, db: AsyncSession = Depends
         samesite="strict",
         max_age=(REFRESH_TOKEN_EXPIRE_DAYS * 60 * 60 * 24),
     )
-    
-    
-    return {"access_token" : access_token, "token_type" : "bearer"}
+
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post("/logout", response_model=LogoutResponse)
-async def logout(response: Response, request: Request, db: AsyncSession = Depends(get_db)):
-    
+async def logout(
+    response: Response, request: Request, db: AsyncSession = Depends(get_db)
+):
+
     payload = await get_valid_refresh_payload(request, db)
-    
+
     jti_value = payload.jti
     blacklisted_jti = JtiBlocklist(jti=jti_value)
 
@@ -89,22 +102,24 @@ async def logout(response: Response, request: Request, db: AsyncSession = Depend
     except Exception:
         await db.rollback()
         raise
-    
+
     response.delete_cookie(
         key="refresh_token",
         httponly=True,
         secure=True,
         samesite="strict",
     )
-    
-    return {"response" : "Logged out successfully"}
+
+    return {"response": "Logged out successfully"}
 
 
 @router.post("/refresh_token", response_model=Token)
-async def refresh_token(response: Response, request: Request, db: AsyncSession = Depends(get_db)):
-    
+async def refresh_token(
+    response: Response, request: Request, db: AsyncSession = Depends(get_db)
+):
+
     payload = await get_valid_refresh_payload(request, db)
-    
+
     jti_value = payload.jti
     blacklisted_jti = JtiBlocklist(jti=jti_value)
 
@@ -114,20 +129,20 @@ async def refresh_token(response: Response, request: Request, db: AsyncSession =
     except Exception:
         await db.rollback()
         raise
-    
+
     access_token_data = {
-        "user_id" : payload.user_id,
-        "token_type" : "access",
+        "user_id": payload.user_id,
+        "token_type": "access",
     }
-    
+
     refresh_token_data = {
-        "user_id" : payload.user_id,
-        "token_type" : "refresh",
+        "user_id": payload.user_id,
+        "token_type": "refresh",
     }
-    
+
     access_token = create_access_token(access_token_data)
-    refresh_token = create_refresh_token(refresh_token_data)      
-    
+    refresh_token = create_refresh_token(refresh_token_data)
+
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -136,5 +151,5 @@ async def refresh_token(response: Response, request: Request, db: AsyncSession =
         samesite="strict",
         max_age=(REFRESH_TOKEN_EXPIRE_DAYS * 60 * 60 * 24),
     )
-    
-    return {"access_token" : access_token, "token_type" : "bearer"}
+
+    return {"access_token": access_token, "token_type": "bearer"}

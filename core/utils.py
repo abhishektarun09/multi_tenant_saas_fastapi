@@ -19,6 +19,7 @@ def hash(password: str):
 def verify(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
+
 def slugify(name: str):
     name = name.lower().strip()
     name = re.sub(r"[^a-z0-9]+", "-", name)
@@ -57,24 +58,28 @@ async def audit_logs(
         await db.commit()
     except Exception:
         await db.rollback()
-        raise 
-    
+        raise
+
 
 async def get_valid_refresh_payload(request: Request, db: AsyncSession):
     token = request.cookies.get("refresh_token")
     if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh Token missing")
-    
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh Token missing"
+        )
+
     credentials_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Could not validate credentials",
-    headers={"WWW-Authenticate": "Bearer"},
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
     )
 
     payload = verify_token(token, credentials_exception)
 
     if payload.token_type != "refresh":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
+        )
 
     result = await db.execute(
         select(JtiBlocklist).where(JtiBlocklist.jti == payload.jti)

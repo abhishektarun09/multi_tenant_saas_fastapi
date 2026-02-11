@@ -6,10 +6,10 @@ from api.v1 import users, organizations, auth, health, projects
 app = FastAPI()
 
 origins = [
-        "http://localhost",
-        "http://localhost:8000",
-        "https://multi-tenant-saas-fastapi.onrender.com",
-    ]
+    "http://localhost",
+    "http://localhost:8000",
+    "https://multi-tenant-saas-fastapi.onrender.com",
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,6 +24,7 @@ app.include_router(users.router)
 app.include_router(organizations.router)
 app.include_router(projects.router)
 app.include_router(health.router)
+
 
 @app.get("/")
 async def root():
