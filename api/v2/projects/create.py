@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.post(
-    "/create", response_model=AddProjectsOut, status_code=status.HTTP_201_CREATED
+    "/", response_model=AddProjectsOut, status_code=status.HTTP_201_CREATED
 )
 async def create_project(
     request: Request,

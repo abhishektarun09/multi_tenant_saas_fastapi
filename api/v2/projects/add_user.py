@@ -18,9 +18,12 @@ router = APIRouter()
 
 
 @router.post(
-    "/add_user", response_model=AddUsersOut, status_code=status.HTTP_201_CREATED
+    "/{project_id}/member",
+    response_model=AddUsersOut,
+    status_code=status.HTTP_201_CREATED,
 )
 async def add_user(
+    project_id: int,
     request: Request,
     payload: AddUsersIn,
     db: AsyncSession = Depends(get_db),
@@ -79,7 +82,7 @@ async def add_user(
         (
             await db.execute(
                 select(Project).where(
-                    Project.id == payload.project_id,
+                    Project.id == project_id,
                     Project.organization_id == membership.organization_id,
                     Project.is_deleted == False,
                 )
@@ -117,7 +120,7 @@ async def add_user(
     # 5. Create project member
     new_project_member = ProjectMember(
         user_id=user.id,
-        project_id=payload.project_id,
+        project_id=project_id,
     )
 
     db.add(new_project_member)
@@ -130,7 +133,7 @@ async def add_user(
         action="user.added",
         resource_type="projects",
         resource_id=str(new_project_member.id),
-        meta_data={"project_id": payload.project_id, "project_name": project.name},
+        meta_data={"project_id": project_id, "project_name": project.name},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         endpoint="project/add_user",

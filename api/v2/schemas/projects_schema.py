@@ -19,7 +19,6 @@ class AddUsersOut(BaseModel):
 
 class AddUsersIn(BaseModel):
     email: EmailStr
-    project_id: int
 
 
 class UpdateProjectsIn(BaseModel):
@@ -54,4 +53,6 @@ class RemoveUsersOut(BaseModel):
 
 class RemoveUsersIn(BaseModel):
     email: EmailStr
-    project_id: int
+
+class DeleteProjectOut(BaseModel):
+    response: str
