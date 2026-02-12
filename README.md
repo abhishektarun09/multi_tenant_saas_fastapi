@@ -63,12 +63,13 @@ Deployed on Render : https://multi-tenant-saas-fastapi.onrender.com/docs
 ### Projects
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/project/create` | Create a project within the active organization |
-| `POST` | `/project/add_user` | Add a user in active organization to the project of active organization |
-| `PUT` | `/project/update/{project_id}` | Update project in the active organization |
-| `GET` | `/project/list` | List all projects of active organization |
-| `GET` | `/project/members/{project_id}` | View all members of a particular project in active organization |
-| `DELETE` | `/project/remove_user` | Remove a member from the selected project |
+| `POST` | `/project/` | Create a project within the active organization |
+| `POST` | `/project/{project_id}/member` | Add a user in active organization to the project of active organization |
+| `PUT` | `/project/{project_id}` | Update project in the active organization |
+| `GET` | `/project/` | List all projects of active organization |
+| `GET` | `/project/{project_id}/members` | View all members of a particular project in active organization |
+| `DELETE` | `/project/{project_id}/member` | Remove a member from the selected project |
+| `DELETE` | `/project/{project_id}` | Soft deletes the project from the organization |
 
 ---
 

@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/members/{project_id}", response_model=ListMembers, status_code=status.HTTP_200_OK
+    "/{project_id}/members", response_model=ListMembers, status_code=status.HTTP_200_OK
 )
 async def list_members(
     project_id: int,

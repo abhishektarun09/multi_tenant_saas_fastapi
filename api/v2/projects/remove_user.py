@@ -18,9 +18,12 @@ router = APIRouter()
 
 
 @router.delete(
-    "/remove_user", response_model=RemoveUsersOut, status_code=status.HTTP_201_CREATED
+    "/{project_id}/member",
+    response_model=RemoveUsersOut,
+    status_code=status.HTTP_201_CREATED,
 )
 async def remove_user(
+    project_id: int,
     request: Request,
     payload: RemoveUsersIn,
     db: AsyncSession = Depends(get_db),
@@ -39,7 +42,7 @@ async def remove_user(
             resource_type="projects",
             status="failed",
             meta_data={
-                "project_id": payload.project_id,
+                "project_id": project_id,
                 "reason": "Not authorized",
                 "role": membership.role.value,
             },
@@ -73,7 +76,7 @@ async def remove_user(
             action="deletion.failed",
             resource_type="projects",
             status="failed",
-            meta_data={"project_id": payload.project_id},
+            meta_data={"project_id": project_id},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="project/remove_user",
@@ -105,7 +108,7 @@ async def remove_user(
             resource_type="projects",
             status="failed",
             resource_id=str(user.id),
-            meta_data={"project_id": payload.project_id},
+            meta_data={"project_id": project_id},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="project/remove_user",
@@ -120,7 +123,7 @@ async def remove_user(
         (
             await db.execute(
                 select(Project).where(
-                    Project.id == payload.project_id,
+                    Project.id == project_id,
                     Project.organization_id == membership.organization_id,
                     Project.is_deleted == False,
                 )
@@ -139,7 +142,7 @@ async def remove_user(
             resource_type="projects",
             status="failed",
             resource_id=str(user.id),
-            meta_data={"project_id": payload.project_id},
+            meta_data={"project_id": project_id},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="project/remove_user",
@@ -171,7 +174,7 @@ async def remove_user(
             resource_type="projects",
             status="failed",
             resource_id=str(user.id),
-            meta_data={"project_id": payload.project_id, "project_name": project.name},
+            meta_data={"project_id": project_id, "project_name": project.name},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="project/remove_user",
@@ -192,7 +195,7 @@ async def remove_user(
         resource_type="projects",
         status="success",
         resource_id=str(user.id),
-        meta_data={"project_id": payload.project_id, "project_name": project.name},
+        meta_data={"project_id": project_id, "project_name": project.name},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         endpoint="project/remove_user",

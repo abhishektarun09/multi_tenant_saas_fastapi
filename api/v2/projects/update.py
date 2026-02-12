@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.put(
-    "/update/{project_id}",
+    "/{project_id}",
     response_model=UpdateProjectsOut,
     status_code=status.HTTP_200_OK,
 )
