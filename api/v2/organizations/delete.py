@@ -47,7 +47,7 @@ async def delete_organization(
             await db.execute(
                 select(Organization).where(
                     Organization.id == membership.organization_id,
-                    Organization.is_deleted == False,
+                    Organization.is_deleted.is_(False),
                 )
             )
         )

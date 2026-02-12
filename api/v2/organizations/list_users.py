@@ -31,7 +31,7 @@ async def list_users(
                 .join(OrganizationMember, OrganizationMember.user_id == Users.id)
                 .where(
                     OrganizationMember.organization_id == membership.organization_id,
-                    Users.is_deleted == False,
+                    Users.is_deleted.is_(False),
                 )
             )
         )

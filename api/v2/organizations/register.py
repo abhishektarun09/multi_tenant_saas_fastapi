@@ -32,7 +32,7 @@ async def register_organization(
             await db.execute(
                 select(Organization).where(
                     Organization.slug == slug_name,
-                    Organization.is_deleted == False,
+                    Organization.is_deleted.is_(False),
                 )
             )
         )

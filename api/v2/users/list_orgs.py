@@ -19,7 +19,7 @@ async def list_orgs(
         (
             await db.execute(
                 select(Users).where(
-                    Users.id == current_user.id, Users.is_deleted == False
+                    Users.id == current_user.id, Users.is_deleted.is_(False)
                 )
             )
         )

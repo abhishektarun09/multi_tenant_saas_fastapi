@@ -49,7 +49,7 @@ async def update(
             await db.execute(
                 select(Organization).where(
                     Organization.slug == new_slug_name,
-                    Organization.is_deleted == False,
+                    Organization.is_deleted.is_(False),
                 )
             )
         )

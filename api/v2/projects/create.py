@@ -48,7 +48,7 @@ async def create_project(
                 select(Project).where(
                     Project.name == project_in.name,
                     Project.organization_id == membership.organization_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                 )
             )
         )

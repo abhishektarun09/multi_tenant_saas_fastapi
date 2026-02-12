@@ -25,7 +25,7 @@ async def list_projects(
             await db.execute(
                 select(Project).where(
                     Project.organization_id == membership.organization_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                 )
             )
         )

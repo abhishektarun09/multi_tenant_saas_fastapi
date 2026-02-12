@@ -68,8 +68,7 @@ async def add_user(
         (
             await db.execute(
                 select(Users).where(
-                    Users.email == input.email,
-                    Users.is_deleted == False,
+                    Users.email == input.email, Users.is_deleted.is_(False)
                 )
             )
         )
@@ -102,7 +101,7 @@ async def add_user(
                 .where(
                     Users.email == input.email,
                     OrganizationMember.organization_id == membership.organization_id,
-                    Users.is_deleted == False,
+                    Users.is_deleted.is_(False),
                 )
             )
         )

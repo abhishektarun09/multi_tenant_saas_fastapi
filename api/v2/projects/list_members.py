@@ -37,7 +37,7 @@ async def list_members(
                 select(Project).where(
                     Project.organization_id == membership.organization_id,
                     Project.id == project_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                 )
             )
         )
@@ -59,8 +59,8 @@ async def list_members(
                 .where(
                     Project.organization_id == membership.organization_id,
                     Project.id == project_id,
-                    Project.is_deleted == False,
-                    Users.is_deleted == False,
+                    Project.is_deleted.is_(False),
+                    Users.is_deleted.is_(False),
                 )
             )
         )

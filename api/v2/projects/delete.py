@@ -54,7 +54,7 @@ async def delete_project(
             await db.execute(
                 select(Project).where(
                     Project.id == project_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                     Project.organization_id == membership.organization_id,
                 )
             )
