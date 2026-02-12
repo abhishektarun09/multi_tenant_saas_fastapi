@@ -80,7 +80,8 @@ async def delete_project(
             endpoint="project/delete",
         )
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project does not exist in organization"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project does not exist in organization",
         )
 
     existing_project.is_deleted = True

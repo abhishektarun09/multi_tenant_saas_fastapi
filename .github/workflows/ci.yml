@@ -31,6 +31,12 @@ jobs:
         run: |
           uv sync --frozen --no-cache
 
+      # --- Run Linters ---
+      - name: Ruff Linters
+        run: |
+          uv run ruff check --fix
+          uv run ruff format
+
       # --- Unit Tests ---
       - name: Run unit tests (pytest)
         run: |

@@ -2,8 +2,6 @@ from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from typing import Literal, List
 from datetime import datetime
 
-from typing import Literal
-
 
 class OrganizationCreate(BaseModel):
     name: str
@@ -15,10 +13,6 @@ class OrganizationOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-
-
-class SelectOrganization(BaseModel):
-    org_id: int
 
 
 class AddUsers(BaseModel):
@@ -50,3 +44,8 @@ class UpdateOrgIn(BaseModel):
 
 class UpdateOrgOut(BaseModel):
     message: str
+
+
+class DeleteOrganizationOut(BaseModel):
+    response: str
+    action: str

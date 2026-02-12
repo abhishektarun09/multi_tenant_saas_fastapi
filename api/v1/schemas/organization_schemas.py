@@ -2,8 +2,6 @@ from pydantic import BaseModel, EmailStr, ConfigDict, Field
 from typing import Literal, List
 from datetime import datetime
 
-from typing import Literal
-
 
 class OrganizationCreate(BaseModel):
     name: str

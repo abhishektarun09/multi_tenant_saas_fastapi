@@ -48,7 +48,6 @@ def create_refresh_token(data: dict):
 def verify_token(token: str, credentials_exception):
 
     try:
-
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("user_id")
         org_id = payload.get("org_id")
@@ -123,7 +122,7 @@ async def get_membership(
     if not membership:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this organization",
+            detail="Not a member of this Organization or Organization does not exist anymore/deleted.",
         )
 
     return membership

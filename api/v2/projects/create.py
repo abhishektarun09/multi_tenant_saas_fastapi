@@ -14,9 +14,7 @@ from core.oauth2 import get_user_and_membership
 router = APIRouter()
 
 
-@router.post(
-    "/", response_model=AddProjectsOut, status_code=status.HTTP_201_CREATED
-)
+@router.post("/", response_model=AddProjectsOut, status_code=status.HTTP_201_CREATED)
 async def create_project(
     request: Request,
     project_in: AddProjectsIn,

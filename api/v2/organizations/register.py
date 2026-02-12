@@ -41,7 +41,6 @@ async def register_organization(
     )
 
     if existing_organization:
-
         await audit_logs(
             db=db,
             actor_user_id=current_user.id,

@@ -10,7 +10,7 @@ from core.oauth2 import get_user_and_membership
 router = APIRouter()
 
 
-@router.get("/list_users", status_code=status.HTTP_200_OK, response_model=ListUsers)
+@router.get("/users", status_code=status.HTTP_200_OK, response_model=ListUsers)
 async def list_users(
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),

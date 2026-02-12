@@ -31,7 +31,6 @@ async def update_project(
 
     # Check whether user is authorized or not
     if membership.role.value not in ("owner", "admin"):
-
         await audit_logs(
             db=db,
             actor_user_id=current_user.id,
@@ -66,7 +65,6 @@ async def update_project(
         .first()
     )
     if not project:
-
         await audit_logs(
             db=db,
             actor_user_id=current_user.id,
@@ -101,7 +99,6 @@ async def update_project(
     )
 
     if existing_project:
-
         await audit_logs(
             db=db,
             actor_user_id=current_user.id,

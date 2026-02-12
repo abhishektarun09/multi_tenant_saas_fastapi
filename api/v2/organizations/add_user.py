@@ -14,9 +14,7 @@ from core.oauth2 import get_user_and_membership
 router = APIRouter()
 
 
-@router.post(
-    "/add_user", status_code=status.HTTP_201_CREATED, response_model=AddUsersOut
-)
+@router.post("/member", status_code=status.HTTP_201_CREATED, response_model=AddUsersOut)
 async def add_user(
     request: Request,
     input: AddUsers,
