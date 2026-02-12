@@ -32,7 +32,7 @@ async def register_organization(
             await db.execute(
                 select(Organization).where(
                     Organization.slug == slug_name,
-                    Organization.is_deleted == False,
+                    Organization.is_deleted.is_(False),
                 )
             )
         )
@@ -41,7 +41,6 @@ async def register_organization(
     )
 
     if existing_organization:
-
         await audit_logs(
             db=db,
             actor_user_id=current_user.id,

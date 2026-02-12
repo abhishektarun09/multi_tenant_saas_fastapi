@@ -1,5 +1,5 @@
 from fastapi import Request, status, HTTPException, Depends, APIRouter
-from sqlalchemy import select, and_
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.v1.schemas.projects_schema import (
     AddProjectsOut,
@@ -61,7 +61,7 @@ async def create_project(
                 select(Project).where(
                     Project.name == project_in.name,
                     Project.organization_id == membership.organization_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                 )
             )
         )
@@ -134,7 +134,7 @@ async def add_user(
         (
             await db.execute(
                 select(Users).where(
-                    Users.email == payload.email, Users.is_deleted == False
+                    Users.email == payload.email, Users.is_deleted.is_(False)
                 )
             )
         )
@@ -174,7 +174,7 @@ async def add_user(
                 select(Project).where(
                     Project.id == payload.project_id,
                     Project.organization_id == membership.organization_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                 )
             )
         )
@@ -272,7 +272,7 @@ async def remove_user(
         (
             await db.execute(
                 select(Users).where(
-                    Users.email == payload.email, Users.is_deleted == False
+                    Users.email == payload.email, Users.is_deleted.is_(False)
                 )
             )
         )
@@ -289,7 +289,7 @@ async def remove_user(
             resource_type="projects",
             status="failed",
             resource_id=str(user.id),
-            meta_data={"project_id": payload.project_id, "project_name": project.name},
+            meta_data={"project_id": payload.project_id},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="project/remove_user",
@@ -321,7 +321,7 @@ async def remove_user(
             resource_type="projects",
             status="failed",
             resource_id=str(user.id),
-            meta_data={"project_id": payload.project_id, "project_name": project.name},
+            meta_data={"project_id": payload.project_id},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="project/remove_user",
@@ -338,7 +338,7 @@ async def remove_user(
                 select(Project).where(
                     Project.id == payload.project_id,
                     Project.organization_id == membership.organization_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                 )
             )
         )
@@ -434,7 +434,6 @@ async def update_project(
 
     # Check whether user is authorized or not
     if membership.role.value not in ("owner", "admin"):
-
         await audit_logs(
             db=db,
             actor_user_id=current_user.id,
@@ -461,7 +460,7 @@ async def update_project(
                 select(Project).where(
                     Project.id == project_id,
                     Project.organization_id == membership.organization_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                 )
             )
         )
@@ -469,7 +468,6 @@ async def update_project(
         .first()
     )
     if not project:
-
         await audit_logs(
             db=db,
             actor_user_id=current_user.id,
@@ -495,7 +493,7 @@ async def update_project(
                 select(Project).where(
                     Project.name == payload.new_name,
                     Project.organization_id == membership.organization_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                 )
             )
         )
@@ -504,7 +502,6 @@ async def update_project(
     )
 
     if existing_project:
-
         await audit_logs(
             db=db,
             actor_user_id=current_user.id,
@@ -557,7 +554,7 @@ async def list_projects(
             await db.execute(
                 select(Project).where(
                     Project.organization_id == membership.organization_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                 )
             )
         )
@@ -600,7 +597,7 @@ async def list_members(
                 select(Project).where(
                     Project.organization_id == membership.organization_id,
                     Project.id == project_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                 )
             )
         )
@@ -622,8 +619,8 @@ async def list_members(
                 .where(
                     Project.organization_id == membership.organization_id,
                     Project.id == project_id,
-                    Project.is_deleted == False,
-                    Users.is_deleted == False,
+                    Project.is_deleted.is_(False),
+                    Users.is_deleted.is_(False),
                 )
             )
         )

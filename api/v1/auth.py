@@ -25,7 +25,7 @@ async def login(
 
     stmt = select(Users).where(
         Users.email == user_credentials.username,
-        Users.is_deleted == False,
+        Users.is_deleted.is_(False),
     )
     result = await db.execute(stmt)
     user = result.scalars().first()

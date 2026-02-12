@@ -4,7 +4,6 @@ from database.models.jti_blocklist import JtiBlocklist
 from core.utils import get_valid_refresh_payload
 from api.v2.schemas.authorization_schemas import LogoutResponse
 from database.db.session import get_db
-from core.config import env
 
 router = APIRouter()
 

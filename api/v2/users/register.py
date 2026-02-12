@@ -23,7 +23,7 @@ async def register_user(
         (
             await db.execute(
                 select(Users).where(
-                    Users.email == user.email, Users.is_deleted == False
+                    Users.email == user.email, Users.is_deleted.is_(False)
                 )
             )
         )

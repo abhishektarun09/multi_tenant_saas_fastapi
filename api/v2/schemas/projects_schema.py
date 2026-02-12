@@ -54,5 +54,6 @@ class RemoveUsersOut(BaseModel):
 class RemoveUsersIn(BaseModel):
     email: EmailStr
 
+
 class DeleteProjectOut(BaseModel):
     response: str

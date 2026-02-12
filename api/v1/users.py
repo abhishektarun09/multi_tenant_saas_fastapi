@@ -30,7 +30,7 @@ async def register_user(
         (
             await db.execute(
                 select(Users).where(
-                    Users.email == user.email, Users.is_deleted == False
+                    Users.email == user.email, Users.is_deleted.is_(False)
                 )
             )
         )
@@ -80,7 +80,7 @@ async def me(
         (
             await db.execute(
                 select(Users).where(
-                    Users.id == current_user.id, Users.is_deleted == False
+                    Users.id == current_user.id, Users.is_deleted.is_(False)
                 )
             )
         )
@@ -104,7 +104,7 @@ async def list_orgs(
         (
             await db.execute(
                 select(Users).where(
-                    Users.id == current_user.id, Users.is_deleted == False
+                    Users.id == current_user.id, Users.is_deleted.is_(False)
                 )
             )
         )

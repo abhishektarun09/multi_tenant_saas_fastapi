@@ -77,7 +77,7 @@ async def register_organization(
             await db.execute(
                 select(Organization).where(
                     Organization.slug == slug_name,
-                    Organization.is_deleted == False,
+                    Organization.is_deleted.is_(False),
                 )
             )
         )
@@ -86,7 +86,6 @@ async def register_organization(
     )
 
     if existing_organization:
-
         await audit_logs(
             db=db,
             actor_user_id=current_user.id,
@@ -167,7 +166,7 @@ async def update(
             await db.execute(
                 select(Organization).where(
                     Organization.slug == new_slug_name,
-                    Organization.is_deleted == False,
+                    Organization.is_deleted.is_(False),
                 )
             )
         )
@@ -272,7 +271,7 @@ async def add_user(
             await db.execute(
                 select(Users).where(
                     Users.email == input.email,
-                    Users.is_deleted == False,
+                    Users.is_deleted.is_(False),
                 )
             )
         )
@@ -305,7 +304,7 @@ async def add_user(
                 .where(
                     Users.email == input.email,
                     OrganizationMember.organization_id == membership.organization_id,
-                    Users.is_deleted == False,
+                    Users.is_deleted.is_(False),
                 )
             )
         )
@@ -375,7 +374,7 @@ async def list_users(
                 .join(OrganizationMember, OrganizationMember.user_id == Users.id)
                 .where(
                     OrganizationMember.organization_id == membership.organization_id,
-                    Users.is_deleted == False,
+                    Users.is_deleted.is_(False),
                 )
             )
         )

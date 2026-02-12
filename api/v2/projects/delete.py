@@ -54,7 +54,7 @@ async def delete_project(
             await db.execute(
                 select(Project).where(
                     Project.id == project_id,
-                    Project.is_deleted == False,
+                    Project.is_deleted.is_(False),
                     Project.organization_id == membership.organization_id,
                 )
             )
@@ -80,7 +80,8 @@ async def delete_project(
             endpoint="project/delete",
         )
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project does not exist in organization"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project does not exist in organization",
         )
 
     existing_project.is_deleted = True
