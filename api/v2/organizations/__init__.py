@@ -5,6 +5,7 @@ from .register import router as register_router
 from .select import router as select_router
 from .update import router as update_router
 from .delete import router as delete_router
+from .remove_member import router as remove_member_router
 
 router = APIRouter(prefix="/organization", tags=["Organizations"])
 
@@ -14,3 +15,4 @@ router.include_router(list_users_router)
 router.include_router(register_router)
 router.include_router(update_router)
 router.include_router(delete_router)
+router.include_router(remove_member_router)
