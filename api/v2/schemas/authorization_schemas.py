@@ -11,7 +11,6 @@ class TokenData(BaseModel):
     user_id: int
     token_type: str
     org_id: Optional[int] = None
-    org_token_version: Optional[int] = None
     jti: str
 
 

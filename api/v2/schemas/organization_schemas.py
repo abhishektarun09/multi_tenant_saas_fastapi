@@ -49,3 +49,11 @@ class UpdateOrgOut(BaseModel):
 class DeleteOrganizationOut(BaseModel):
     response: str
     action: str
+
+
+class RemoveMemberOut(BaseModel):
+    response: str
+
+
+class RemoveMemberIn(BaseModel):
+    email: EmailStr

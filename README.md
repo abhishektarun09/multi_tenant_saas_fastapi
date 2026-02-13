@@ -60,6 +60,7 @@ Deployed on Render : https://multi-tenant-saas-fastapi.onrender.com/docs
 | `POST` | `/organization/add_user` | Invite/Add users to an organization |
 | `GET` | `/organization/list_users` | View all members of the active organization |
 | `DELETE` | `/organization/` | Soft deletes the active organization (can only be done by owner) |
+| `DELETE` | `/organization/member` | Removes the member from the organization. Also removes from all projects of the Organization |
 
 ### Projects
 | Method | Endpoint | Description |

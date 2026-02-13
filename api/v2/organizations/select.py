@@ -1,7 +1,6 @@
 from fastapi import status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from database.models.organization import Organization
 from database.models.organization_member import OrganizationMember
 from api.v2.schemas.authorization_schemas import Token
 from database.db.session import get_db
@@ -42,16 +41,9 @@ async def select_organization(
             detail="Not member of the organization",
         )
 
-    org_token_version = (
-        (await db.execute(select(Organization).where(Organization.id == org_id)))
-        .scalars()
-        .first()
-    )
-
     jwt_data = {
         "user_id": user_id,
         "org_id": org_id,
-        "org_token_version": org_token_version.token_version,
         "token_type": "access",
     }
 
