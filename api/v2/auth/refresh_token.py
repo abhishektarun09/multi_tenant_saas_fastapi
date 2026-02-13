@@ -1,5 +1,6 @@
 from fastapi import Depends, APIRouter, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from core.rate_limiter import RateLimiter
 from database.models.jti_blocklist import JtiBlocklist
 from core.utils import get_valid_refresh_payload
 from api.v2.schemas.authorization_schemas import Token
@@ -9,7 +10,7 @@ from core.config import env
 
 REFRESH_TOKEN_EXPIRE_DAYS = env.refresh_token_expire_days
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 
 @router.post("/refresh_token", response_model=Token)

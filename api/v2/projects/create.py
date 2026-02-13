@@ -5,13 +5,14 @@ from api.v2.schemas.projects_schema import (
     AddProjectsOut,
     AddProjectsIn,
 )
+from core.rate_limiter import RateLimiter
 from database.models.projects import Project
 
 from database.db.session import get_db
 from core.utils import audit_logs
 from core.oauth2 import get_user_and_membership
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 
 @router.post("/", response_model=AddProjectsOut, status_code=status.HTTP_201_CREATED)

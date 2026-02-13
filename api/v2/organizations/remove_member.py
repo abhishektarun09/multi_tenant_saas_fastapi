@@ -1,6 +1,7 @@
 from fastapi import Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from core.rate_limiter import RateLimiter
 from core.utils import audit_logs
 from database.models.organization_member import OrganizationMember
 from api.v2.schemas.organization_schemas import RemoveMemberIn, RemoveMemberOut
@@ -10,7 +11,7 @@ from database.models.project_member import ProjectMember
 from database.models.projects import Project
 from database.models.users import Users
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 
 @router.delete(
