@@ -2,6 +2,7 @@ from fastapi import status, HTTPException, Depends, APIRouter, Request, Response
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from core.rate_limiter import RateLimiter
 from database.models.users import Users
 from core.utils import verify, audit_logs
 from api.v2.schemas.authorization_schemas import LoginOut
@@ -11,7 +12,7 @@ from core.config import env
 
 REFRESH_TOKEN_EXPIRE_DAYS = env.refresh_token_expire_days
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 
 @router.post("/login", response_model=LoginOut)

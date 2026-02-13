@@ -5,6 +5,7 @@ from api.v2.schemas.projects_schema import (
     RemoveUsersIn,
     RemoveUsersOut,
 )
+from core.rate_limiter import RateLimiter
 from database.models.organization_member import OrganizationMember
 from database.models.project_member import ProjectMember
 from database.models.projects import Project
@@ -14,7 +15,7 @@ from core.utils import audit_logs
 from core.oauth2 import get_user_and_membership
 from database.models.users import Users
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 
 @router.delete(

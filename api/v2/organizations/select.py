@@ -1,12 +1,13 @@
 from fastapi import status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from core.rate_limiter import RateLimiter
 from database.models.organization_member import OrganizationMember
 from api.v2.schemas.authorization_schemas import Token
 from database.db.session import get_db
 from core.oauth2 import create_access_token, get_current_user
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 
 @router.post(

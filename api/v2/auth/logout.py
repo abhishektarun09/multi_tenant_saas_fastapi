@@ -1,11 +1,12 @@
 from fastapi import Depends, APIRouter, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from core.rate_limiter import RateLimiter
 from database.models.jti_blocklist import JtiBlocklist
 from core.utils import get_valid_refresh_payload
 from api.v2.schemas.authorization_schemas import LogoutResponse
 from database.db.session import get_db
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 
 @router.post("/logout", response_model=LogoutResponse)

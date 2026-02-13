@@ -1,6 +1,7 @@
 from fastapi import Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from core.rate_limiter import RateLimiter
 from database.models.organization_member import OrganizationMember
 from api.v2.schemas.organization_schemas import (
     AddUsers,
@@ -11,7 +12,7 @@ from database.db.session import get_db
 from core.utils import audit_logs
 from core.oauth2 import get_user_and_membership
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 
 @router.post("/member", status_code=status.HTTP_201_CREATED, response_model=AddUsersOut)
