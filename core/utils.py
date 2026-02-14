@@ -8,6 +8,8 @@ from core.oauth2 import verify_token
 from database.models.audit_log import AuditLog
 from sqlalchemy import select
 from database.models.jti_blocklist import JtiBlocklist
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from core.config import env
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -89,3 +91,30 @@ async def get_valid_refresh_payload(request: Request, db: AsyncSession):
         raise HTTPException(status_code=401, detail="Token expired or blocklisted")
 
     return payload
+
+
+serializer = URLSafeTimedSerializer(secret_key=env.secret_key, salt=env.mail_salt)
+
+
+def create_url_safe_token(data: dict):
+
+    token = serializer.dumps(data)
+
+    return token
+
+
+def decode_url_safe_token(token: str):
+    try:
+        token_data = serializer.loads(token, max_age=60 * 60)
+
+        return token_data
+
+    except SignatureExpired:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Token expired"
+        )
+
+    except BadSignature:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token"
+        )

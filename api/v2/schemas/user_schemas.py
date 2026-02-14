@@ -17,6 +17,11 @@ class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class UserRegisterResponse(BaseModel):
+    message: str
+    user: UserOut
+
+
 class Me(BaseModel):
     email: EmailStr
     name: str
