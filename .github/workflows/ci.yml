@@ -34,7 +34,7 @@ jobs:
       # --- Run Linters ---
       - name: Ruff Linters
         run: |
-          uv run ruff check --fix
+          uv run ruff check .
           uv run ruff format
 
       # --- Unit Tests ---

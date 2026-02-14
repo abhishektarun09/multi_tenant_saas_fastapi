@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import List, Optional
 
 
 class Token(BaseModel):
@@ -21,3 +21,7 @@ class LoginOut(BaseModel):
 
 class LogoutResponse(BaseModel):
     response: str
+
+
+class EmailModel(BaseModel):
+    email_addresses: List[str]
