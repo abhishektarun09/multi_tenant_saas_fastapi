@@ -39,9 +39,9 @@ Deployed on Render : https://multi-tenant-saas-fastapi.onrender.com/docs
 ### Authentication
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/login` | Authenticate user & receive JWT pair |
-| `POST` | `/logout` | Revoke tokens & end session |
-| `POST` | `/refresh_token` | Exchange refresh token for a new pair |
+| `POST` | `/auth/login` | Authenticate user & receive JWT pair |
+| `POST` | `/auth/logout` | Revoke tokens & end session |
+| `POST` | `/auth/refresh_token` | Exchange refresh token for a new pair |
 
 ### Users
 | Method | Endpoint | Description |

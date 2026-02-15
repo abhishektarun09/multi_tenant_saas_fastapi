@@ -7,7 +7,7 @@ from .update import router as update_router
 from .delete import router as delete_router
 from .remove_member import router as remove_member_router
 
-router = APIRouter(prefix="/organization", tags=["Organizations"])
+router = APIRouter(prefix="/v2/organization", tags=["Organizations"])
 
 router.include_router(select_router)
 router.include_router(add_user_router)

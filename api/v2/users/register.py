@@ -1,17 +1,14 @@
 from fastapi import Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
-from core.mail import create_message, mail
 from core.rate_limiter import RateLimiter
 from database.models.users import Users
-from core.utils import audit_logs, create_url_safe_token, hash
+from core.utils import audit_logs, hash
 from api.v2.schemas.user_schemas import (
     UserCreate,
     UserRegisterResponse,
 )
 from database.db.session import get_db
 from sqlalchemy import select
-from core.config import env
-from datetime import datetime
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
@@ -51,23 +48,6 @@ async def register_user(
 
     new_user = Users(**user_data)
 
-    token = create_url_safe_token({"email": user.email})
-
-    verification_url = f"{env.base_url}/verify/{token}"
-
-    message = create_message(
-        recipients=[user.email],
-        subject="Verify your email address",
-        template_body={
-            "app_name": "ProjectTrack",
-            "user_name": user.name,
-            "verification_url": verification_url,
-            "year": datetime.now().year,
-        },
-    )
-
-    await mail.send_message(message=message, template_name="registration_verify.html")
-
     db.add(new_user)
     await db.flush()
 
@@ -84,6 +64,6 @@ async def register_user(
     )
 
     return {
-        "message": "Account created! Check email to verify your account",
+        "message": "Account created!",
         "user": new_user,
     }
