@@ -41,37 +41,37 @@ Deployed on Render : https://multi-tenant-saas-fastapi.onrender.com/docs
 | :--- | :--- | :--- |
 | `POST` | `/auth/login` | Authenticate user & receive JWT pair |
 | `POST` | `/auth/logout` | Revoke tokens & end session |
-| `POST` | `/auth/refresh_token` | Exchange refresh token for a new pair |
+| `POST` | `/auth/refresh-token` | Exchange refresh token for a new pair |
 
 ### Users
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/user/register` | Register a new user account |
-| `GET` | `/user/me` | Retrieve current user profile |
-| `GET` | `/user/orgs` | List organizations associated with the user |
-| `PATCH` | `/user/update_password` | Change current password |
+| `POST` | `/users/register` | Register a new user account |
+| `GET` | `/users/me` | Retrieve current user profile |
+| `GET` | `/users/orgs` | List organizations associated with the user |
+| `PATCH` | `/users/update-password` | Change current password |
 
 ### Organizations
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/organization/register` | Create a new organization |
-| `PUT` | `/organization/update` | Update the Organization details |
-| `POST` | `/organization/select/{organization_id}` | Context-switch into a specific organization |
-| `POST` | `/organization/add_user` | Invite/Add users to an organization |
-| `GET` | `/organization/list_users` | View all members of the active organization |
-| `DELETE` | `/organization/` | Soft deletes the active organization (can only be done by owner) |
-| `DELETE` | `/organization/member` | Removes the member from the organization. Also removes from all projects of the Organization |
+| `POST` | `/organizations/register` | Create a new organization |
+| `PUT` | `/organizations/update` | Update the Organization details |
+| `POST` | `/organizations/select/{organization_id}` | Context-switch into a specific organization |
+| `POST` | `/organizations/add_user` | Invite/Add users to an organization |
+| `GET` | `/organizations/list_users` | View all members of the active organization |
+| `DELETE` | `/organizations/` | Soft deletes the active organization (can only be done by owner) |
+| `DELETE` | `/organizations/member` | Removes the member from the organization. Also removes from all projects of the Organization |
 
 ### Projects
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/project/` | Create a project within the active organization |
-| `POST` | `/project/{project_id}/member` | Add a user in active organization to the project of active organization |
-| `PUT` | `/project/{project_id}` | Update project in the active organization |
-| `GET` | `/project/` | List all projects of active organization |
-| `GET` | `/project/{project_id}/members` | View all members of a particular project in active organization |
-| `DELETE` | `/project/{project_id}/member` | Remove a member from the selected project |
-| `DELETE` | `/project/{project_id}` | Soft deletes the project from the organization |
+| `POST` | `/projects/` | Create a project within the active organization |
+| `POST` | `/projects/{project_id}/member` | Add a user in active organization to the project of active organization |
+| `PUT` | `/projects/{project_id}` | Update project in the active organization |
+| `GET` | `/projects/` | List all projects of active organization |
+| `GET` | `/projects/{project_id}/members` | View all members of a particular project in active organization |
+| `DELETE` | `/projects/{project_id}/member` | Remove a member from the selected project |
+| `DELETE` | `/projects/{project_id}` | Soft deletes the project from the organization |
 
 ---
 

@@ -13,7 +13,7 @@ REFRESH_TOKEN_EXPIRE_DAYS = env.refresh_token_expire_days
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 
-@router.post("/refresh_token", response_model=Token)
+@router.post("/refresh-token", response_model=Token)
 async def refresh_token(
     response: Response, request: Request, db: AsyncSession = Depends(get_db)
 ):

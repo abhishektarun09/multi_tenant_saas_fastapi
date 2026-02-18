@@ -16,7 +16,7 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
 
 
 @router.patch(
-    "/update_password", response_model=UpdatePasswordOut, status_code=status.HTTP_200_OK
+    "/update-password", response_model=UpdatePasswordOut, status_code=status.HTTP_200_OK
 )
 async def update_password(
     response: Response,
