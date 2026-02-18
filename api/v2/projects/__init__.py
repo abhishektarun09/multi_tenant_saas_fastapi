@@ -7,7 +7,7 @@ from .remove_user import router as remove_user_router
 from .update import router as update_router
 from .delete import router as delete_router
 
-router = APIRouter(prefix="/v2/project", tags=["Projects"])
+router = APIRouter(prefix="/v2/projects", tags=["Projects"])
 
 router.include_router(create_router)
 router.include_router(update_router)

@@ -5,7 +5,7 @@ from .register import router as register_router
 from .update_password import router as update_password_router
 
 
-router = APIRouter(prefix="/v2/user", tags=["Users"])
+router = APIRouter(prefix="/v2/users", tags=["Users"])
 
 router.include_router(register_router)
 router.include_router(list_orgs_router)
