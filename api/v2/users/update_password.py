@@ -81,7 +81,7 @@ async def update_password(
         key="refresh_token",
         httponly=True,
         secure=True,
-        samesite="strict",
+        samesite="lax",
     )
 
     return {

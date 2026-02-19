@@ -8,6 +8,11 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int
     refresh_token_expire_days: int
 
+    google_client_id: str
+    google_client_secret: str
+
+    base_url: str
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

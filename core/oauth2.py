@@ -11,6 +11,7 @@ from api.v2.schemas.authorization_schemas import TokenData
 from database.db.session import get_db
 from typing import Tuple
 from sqlalchemy import select
+from authlib.integrations.starlette_client import OAuth
 
 
 bearer_scheme = HTTPBearer()
@@ -19,6 +20,21 @@ SECRET_KEY = env.secret_key
 ALGORITHM = env.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = env.access_token_expire_minutes
 REFRESH_TOKEN_EXPIRE_DAYS = env.refresh_token_expire_days
+
+GOOGLE_CLIENT_ID = env.google_client_id
+GOOGLE_CLIENT_SECRET = env.google_client_secret
+
+oauth = OAuth()
+
+oauth.register(
+    name="google",
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+    client_kwargs={
+        "scope": "openid email profile",
+    },
+)
 
 
 def create_access_token(data: dict):

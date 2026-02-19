@@ -40,7 +40,7 @@ class ListProjects(BaseModel):
 
 class ProjectMembersOut(BaseModel):
     name: str
-    email: str
+    email: EmailStr
 
 
 class ListMembers(BaseModel):
