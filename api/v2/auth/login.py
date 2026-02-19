@@ -3,6 +3,7 @@ from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from core.rate_limiter import RateLimiter
+from database.models.auth_identities import AuthIdentity
 from database.models.users import Users
 from core.utils import verify, audit_logs
 from api.v2.schemas.authorization_schemas import LoginOut
@@ -23,13 +24,40 @@ async def login(
     user_credentials: OAuth2PasswordRequestForm = Depends(),
 ):
 
-    stmt = select(Users).where(
-        Users.email == user_credentials.username, Users.is_deleted.is_(False)
+    stmt = (
+        select(Users, AuthIdentity)
+        .join(AuthIdentity, AuthIdentity.user_id == Users.id)
+        .where(
+            Users.email == user_credentials.username,
+            Users.is_deleted.is_(False),
+            AuthIdentity.provider == "password",
+        )
     )
     result = await db.execute(stmt)
-    user = result.scalars().first()
+    row = result.first()
 
-    if not user or not verify(user_credentials.password, user.password_hash):
+    if not row:
+        await audit_logs(
+            db=db,
+            action="login.failed",
+            resource_type="auth",
+            status="failed",
+            meta_data={
+                "reason": "invalid_credentials",
+                "email": user_credentials.username,
+            },
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/login",
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials"
+        )
+
+    user, identity = row
+
+    if not verify(user_credentials.password, identity.password_hash):
         await audit_logs(
             db=db,
             action="login.failed",

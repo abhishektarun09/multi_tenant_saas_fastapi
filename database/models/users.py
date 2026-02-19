@@ -18,7 +18,6 @@ class Users(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String, nullable=False)
     email = Column(String, nullable=False, unique=True)
-    password_hash = Column(String(255), nullable=False)
     is_verified = Column(Boolean, default=False)
     status = Column(
         Enum(UserStatus, name="user_status"),
@@ -39,3 +38,4 @@ class Users(Base):
     organizations = relationship("OrganizationMember", back_populates="users")
 
     projects = relationship("Project", back_populates="creator")
+    identities = relationship("AuthIdentity", back_populates="user")
