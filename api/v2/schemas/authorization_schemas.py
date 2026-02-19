@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 
 
@@ -25,3 +25,11 @@ class LogoutResponse(BaseModel):
 
 class EmailModel(BaseModel):
     email_addresses: List[str]
+
+
+class GoogleUser(BaseModel):
+    id: str
+    email: EmailStr
+    name: str
+    picture: str
+    verified_email: bool

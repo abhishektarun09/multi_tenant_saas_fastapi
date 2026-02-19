@@ -1,40 +1,48 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from api.v2 import users, organizations, auth, health, projects
+from core.config import env
 
 app = FastAPI(
     title="Multi-Tenant SaaS Backend with RBAC",
     version="2.0.0",
-    description="""
+    description=f"""
 ### 🔐 Authentication Overview
 
 All protected endpoints require a valid **JWT access token**.
 
 - Access tokens expire in **5 minutes**
-- A new access token can be generated using `/refresh_token`
+- A new access token can be generated using `/auth/refresh-token`
 
 ---
 
 ### 👤 Step 1: User Registration & Login
 
-1. Register a user via `/user/register`
-2. Login via `/login`
-3. Copy the returned access token and click **Authorize**
-4. Enter: `Bearer <your_access_token>`
+You can authenticate using one of the following methods:
+
+1. Login via `/auth/login`
+2. Or login directly with Google:  
+   👉 <a href="{env.base_url}/v2/auth/google">Login via Google</a>
+
+After login:
+4. Copy the returned access token and click **Authorize**
 
 ---
 
 ### 🏢 Step 2: Organization Setup
 
-#### If You Are NOT Part of an Organization
+After authentication, you must select an organization to continue.
 
-1. Create an organization via `/organization/register`
-2. Note the returned **Organization ID**
-3. Select the organization using `/organization/select`
-4. Copy the returned access token and click **Authorize**
-5. Enter: `Bearer <your_access_token>`
+#### If You Have Been Added to an Organization
+1. Use `/organizations/select/{{organization_id}}`
+2. Copy the returned access token and click **Authorize**
 
+#### If You Are NOT Part of Any Organization
+1. Create your own organization via `/organizations/register`
+2. Select the organization using `/organizations/select/{{organization_id}}`
+3. Copy the returned access token and click **Authorize**
 
 """,
 )
@@ -53,6 +61,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SessionMiddleware, secret_key=env.secret_key)
 
 app.include_router(auth.router)
 app.include_router(users.router)

@@ -31,7 +31,7 @@ class ListOrgs(BaseModel):
 
 class UserOut(BaseModel):
     name: str
-    email: str
+    email: EmailStr
 
 
 class ListUsers(BaseModel):

@@ -30,7 +30,7 @@ async def logout(
         key="refresh_token",
         httponly=True,
         secure=True,
-        samesite="strict",
+        samesite="lax",
     )
 
     return {"response": "Logged out successfully"}
