@@ -1,6 +1,8 @@
+import uuid
 from fastapi import Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.rate_limiter import RateLimiter
+from database.models.auth_identities import AuthIdentity
 from database.models.users import Users
 from core.utils import audit_logs, hash
 from api.v2.schemas.user_schemas import (
@@ -44,12 +46,18 @@ async def register_user(
     hashed_password = hash(user.password)
 
     user_data = user.model_dump(exclude={"password"})
-    user_data["password_hash"] = hashed_password
-
     new_user = Users(**user_data)
 
     db.add(new_user)
     await db.flush()
+
+    identity = AuthIdentity(
+        id=uuid.uuid4(),
+        user_id=new_user.id,
+        provider="password",
+        password_hash=hashed_password,
+    )
+    db.add(identity)
 
     await audit_logs(
         db=db,

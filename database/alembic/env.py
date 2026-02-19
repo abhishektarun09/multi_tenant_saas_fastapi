@@ -7,12 +7,11 @@ from alembic import context
 
 from database.db.base import Base
 from database.models import *  # noqa: F403
-
-from core.config import env
-
 from dotenv import load_dotenv
 
 load_dotenv()
+
+from core.config import env  # noqa: E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

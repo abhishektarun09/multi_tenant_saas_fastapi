@@ -81,7 +81,14 @@ async def get_current_user(
 ):
 
     user = (
-        (await db.execute(select(Users).where(Users.id == payload.user_id)))
+        (
+            await db.execute(
+                select(Users).where(
+                    Users.id == payload.user_id,
+                    Users.is_deleted.is_(False),
+                )
+            )
+        )
         .scalars()
         .first()
     )

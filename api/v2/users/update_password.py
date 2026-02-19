@@ -1,7 +1,9 @@
 from fastapi import Request, Response, status, HTTPException, Depends, APIRouter
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.oauth2 import get_current_user
 from core.rate_limiter import RateLimiter
+from database.models.auth_identities import AuthIdentity
 from database.models.jti_blocklist import JtiBlocklist
 from database.models.users import Users
 from core.utils import audit_logs, get_valid_refresh_payload, hash, verify
@@ -26,13 +28,29 @@ async def update_password(
     db: AsyncSession = Depends(get_db),
 ):
 
-    if not verify(input_data.current_password, current_user.password_hash):
+    identity = (
+        (
+            await db.execute(
+                select(AuthIdentity)
+                .join(Users, Users.id == AuthIdentity.user_id)
+                .where(
+                    current_user.id == Users.id,
+                    Users.is_deleted.is_(False),
+                    AuthIdentity.provider == "password",
+                )
+            )
+        )
+        .scalars()
+        .first()
+    )
+
+    if not verify(input_data.current_password, identity.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect",
         )
 
-    if verify(input_data.new_password, current_user.password_hash):
+    if verify(input_data.new_password, identity.password_hash):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password must be different from the current password",
@@ -45,7 +63,7 @@ async def update_password(
 
     db.add(blacklisted_jti)
     hashed_password = hash(input_data.new_password)
-    current_user.password_hash = hashed_password
+    identity.password_hash = hashed_password
 
     await audit_logs(
         db=db,
