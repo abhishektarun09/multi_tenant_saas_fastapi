@@ -42,6 +42,8 @@ Deployed on Render : https://multi-tenant-saas-fastapi.onrender.com/docs
 | `POST` | `/auth/login` | Authenticate user & receive JWT pair |
 | `POST` | `/auth/logout` | Revoke tokens & end session |
 | `POST` | `/auth/refresh-token` | Exchange refresh token for a new pair |
+| `GET` | `/auth/google` | Redicts to the Google Login page for OAuth |
+| `GET` | `/auth/callback/google` | Handles calllback from Google when user after successful login |
 
 ### Users
 | Method | Endpoint | Description |
