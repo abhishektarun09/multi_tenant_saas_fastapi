@@ -10,6 +10,7 @@ from authlib.integrations.starlette_client import OAuthError
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.v2.schemas.authorization_schemas import GoogleUser
+from core.google_callback_html import google_callback_html
 from core.oauth2 import create_access_token, create_refresh_token
 from core.rate_limiter import RateLimiter
 from database.models.auth_identities import AuthIdentity
@@ -148,17 +149,7 @@ async def auth_google(
     access_token = create_access_token(access_token_data)
     refresh_token = create_refresh_token(refresh_token_data)
 
-    html = f"""
-    <html>
-        <body>
-            <h2>Login Successful</h2>
-            <p>Copy your access token and paste it into Swagger Authorize:</p>
-            <textarea rows="8" cols="100">{access_token}</textarea>
-            <br><br>
-            <a href="{env.base_url}/docs">Go back to Swagger</a>
-        </body>
-    </html>
-    """
+    html = google_callback_html(access_token=access_token, base_url=env.base_url)
 
     response = HTMLResponse(content=html)
 

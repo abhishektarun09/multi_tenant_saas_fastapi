@@ -27,7 +27,7 @@ You can authenticate using one of the following methods:
    👉 <a href="{env.base_url}/v2/auth/google">Login via Google</a>
 
 After login:
-4. Copy the returned access token and click **Authorize**
+3. Copy the returned access token and click **Authorize**
 
 ---
 
