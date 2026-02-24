@@ -1,4 +1,12 @@
-from fastapi import status, HTTPException, Depends, APIRouter, Request, Response
+from fastapi import (
+    BackgroundTasks,
+    status,
+    HTTPException,
+    Depends,
+    APIRouter,
+    Request,
+    Response,
+)
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -20,6 +28,7 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
 async def login(
     response: Response,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     user_credentials: OAuth2PasswordRequestForm = Depends(),
 ):
@@ -37,8 +46,8 @@ async def login(
     row = result.first()
 
     if not row:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             action="login.failed",
             resource_type="auth",
             status="failed",
@@ -58,8 +67,8 @@ async def login(
     user, identity = row
 
     if not verify(user_credentials.password, identity.password_hash):
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             action="login.failed",
             resource_type="auth",
             status="failed",
@@ -76,8 +85,8 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Credentials"
         )
 
-    await audit_logs(
-        db=db,
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=user.id,
         action="login.success",
         resource_type="auth",

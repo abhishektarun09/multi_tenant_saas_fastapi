@@ -1,4 +1,4 @@
-from fastapi import Request, status, HTTPException, Depends, APIRouter
+from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.v2.schemas.projects_schema import DeleteProjectOut
@@ -21,6 +21,7 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
 async def delete_project(
     project_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
 ):
@@ -28,8 +29,8 @@ async def delete_project(
 
     # 1. Authorization
     if membership.role.value not in ("owner", "admin"):
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             organization_id=membership.organization_id,
             action="deletion.failed",
@@ -65,8 +66,8 @@ async def delete_project(
     )
 
     if not existing_project:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             organization_id=membership.organization_id,
             action="deletion.failed",
@@ -84,15 +85,21 @@ async def delete_project(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project does not exist in organization",
         )
+    try:
+        existing_project.is_deleted = True
 
-    existing_project.is_deleted = True
+        await db.execute(
+            delete(ProjectMember).where(ProjectMember.project_id == project_id)
+        )
 
-    await db.execute(
-        delete(ProjectMember).where(ProjectMember.project_id == project_id)
-    )
+        await db.commit()
 
-    await audit_logs(
-        db=db,
+    except Exception:
+        await db.rollback()
+        raise
+
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=current_user.id,
         organization_id=membership.organization_id,
         action="project.deleted",

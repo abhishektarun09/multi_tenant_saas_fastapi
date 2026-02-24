@@ -1,4 +1,4 @@
-from fastapi import Request, status, HTTPException, Depends, APIRouter
+from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.v2.schemas.projects_schema import (
@@ -24,6 +24,7 @@ async def update_project(
     project_id: int,
     request: Request,
     payload: UpdateProjectsIn,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
 ):
@@ -32,8 +33,8 @@ async def update_project(
 
     # Check whether user is authorized or not
     if membership.role.value not in ("owner", "admin"):
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             organization_id=membership.organization_id,
             action="update.failed",
@@ -66,8 +67,8 @@ async def update_project(
         .first()
     )
     if not project:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             organization_id=membership.organization_id,
             action="update.failed",
@@ -100,8 +101,8 @@ async def update_project(
     )
 
     if existing_project:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             organization_id=membership.organization_id,
             action="update.failed",
@@ -120,10 +121,15 @@ async def update_project(
         )
 
     # Update Project details
-    project.name = payload.new_name
+    try:
+        project.name = payload.new_name
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
-    await audit_logs(
-        db=db,
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=current_user.id,
         organization_id=membership.organization_id,
         action="update.success",

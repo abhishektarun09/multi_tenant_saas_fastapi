@@ -1,4 +1,4 @@
-from fastapi import Request, status, HTTPException, Depends, APIRouter
+from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.v2.schemas.projects_schema import (
@@ -19,6 +19,7 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
 async def create_project(
     request: Request,
     project_in: AddProjectsIn,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
 ):
@@ -26,8 +27,8 @@ async def create_project(
     user, membership = current_user_and_membership
 
     if membership.role.value not in ("owner", "admin"):
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=user.id,
             organization_id=membership.organization_id,
             action="creation.failed",
@@ -57,8 +58,8 @@ async def create_project(
         .first()
     )
     if project:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=user.id,
             organization_id=membership.organization_id,
             action="creation.failed",
@@ -73,22 +74,31 @@ async def create_project(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Project already exists"
         )
 
-    new_project = Project(
-        name=project_in.name,
-        organization_id=membership.organization_id,
-        created_by=user.id,
-    )
+    try:
+        new_project = Project(
+            name=project_in.name,
+            organization_id=membership.organization_id,
+            created_by=user.id,
+        )
 
-    db.add(new_project)
-    await db.flush()
+        db.add(new_project)
+        await db.flush()
 
-    await audit_logs(
-        db=db,
+        new_project_id = new_project.id
+
+        await db.commit()
+
+    except Exception:
+        await db.rollback()
+        raise
+
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=user.id,
         organization_id=membership.organization_id,
         action="project.created",
         resource_type="projects",
-        resource_id=str(new_project.id),
+        resource_id=str(new_project_id),
         meta_data={"project_name": project_in.name},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),

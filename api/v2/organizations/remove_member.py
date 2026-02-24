@@ -1,4 +1,4 @@
-from fastapi import Request, status, HTTPException, Depends, APIRouter
+from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.rate_limiter import RateLimiter
@@ -20,6 +20,7 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
 async def remove_member(
     payload: RemoveMemberIn,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
 ):
@@ -27,8 +28,8 @@ async def remove_member(
     current_user, membership = current_user_and_membership
 
     if membership.role.value not in ("owner", "admin"):
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="remove.member",
             resource_type="organizations",
@@ -58,8 +59,8 @@ async def remove_member(
     )
 
     if not existing_user:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="remove.member",
             resource_type="organizations",
@@ -88,8 +89,8 @@ async def remove_member(
     )
 
     if not user_in_org:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="remove.member",
             resource_type="organizations",
@@ -106,8 +107,8 @@ async def remove_member(
         )
 
     if membership.role.value == "admin" and user_in_org.role.value == "owner":
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="remove.member",
             resource_type="organizations",
@@ -139,8 +140,8 @@ async def remove_member(
         )
 
         if len(owners_count) <= 1:
-            await audit_logs(
-                db=db,
+            background_tasks.add_task(
+                audit_logs,
                 actor_user_id=current_user.id,
                 action="remove.member",
                 resource_type="organizations",
@@ -155,30 +156,36 @@ async def remove_member(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot remove the last owner of the organization",
             )
-
-    # Delete member from projects
-    await db.execute(
-        delete(ProjectMember).where(
-            ProjectMember.user_id == existing_user.id,
-            ProjectMember.project_id.in_(
-                select(Project.id).where(
-                    Project.organization_id == membership.organization_id,
-                    Project.is_deleted.is_(False),
-                )
-            ),
+    try:
+        # Delete member from projects
+        await db.execute(
+            delete(ProjectMember).where(
+                ProjectMember.user_id == existing_user.id,
+                ProjectMember.project_id.in_(
+                    select(Project.id).where(
+                        Project.organization_id == membership.organization_id,
+                        Project.is_deleted.is_(False),
+                    )
+                ),
+            )
         )
-    )
 
-    # Delete member from the organization
-    await db.execute(
-        delete(OrganizationMember).where(
-            OrganizationMember.organization_id == membership.organization_id,
-            OrganizationMember.user_id == existing_user.id,
+        # Delete member from the organization
+        await db.execute(
+            delete(OrganizationMember).where(
+                OrganizationMember.organization_id == membership.organization_id,
+                OrganizationMember.user_id == existing_user.id,
+            )
         )
-    )
 
-    await audit_logs(
-        db=db,
+        await db.commit()
+
+    except Exception:
+        await db.rollback()
+        raise
+
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=current_user.id,
         action="remove.member",
         resource_type="organizations",

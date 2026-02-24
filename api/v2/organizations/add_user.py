@@ -1,4 +1,4 @@
-from fastapi import Request, status, HTTPException, Depends, APIRouter
+from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.rate_limiter import RateLimiter
@@ -19,6 +19,7 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
 async def add_user(
     request: Request,
     input: AddUsers,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
 ):
@@ -26,8 +27,8 @@ async def add_user(
     current_user, membership = current_user_and_membership
 
     if membership.role.value not in ("owner", "admin"):
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="addition.failed",
             resource_type="organizations",
@@ -44,8 +45,8 @@ async def add_user(
         )
 
     if membership.role.value == "admin" and input.role == "owner":
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="addition.failed",
             resource_type="organizations",
@@ -78,8 +79,8 @@ async def add_user(
     )
 
     if not existing_user:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="addition.failed",
             resource_type="organizations",
@@ -111,8 +112,8 @@ async def add_user(
     )
 
     if member:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="addition.failed",
             resource_type="organizations",
@@ -128,15 +129,22 @@ async def add_user(
             detail="User already registered in Organization",
         )
 
-    new_member = OrganizationMember(
-        user_id=existing_user.id,
-        organization_id=membership.organization_id,
-        role=input.role,
-    )
+    try:
+        new_member = OrganizationMember(
+            user_id=existing_user.id,
+            organization_id=membership.organization_id,
+            role=input.role,
+        )
 
-    db.add(new_member)
-    await audit_logs(
-        db=db,
+        db.add(new_member)
+        await db.commit()
+
+    except Exception:
+        await db.rollback()
+        raise
+
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=current_user.id,
         action="user.added",
         resource_type="organizations",
