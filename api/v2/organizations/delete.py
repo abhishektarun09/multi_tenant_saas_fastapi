@@ -1,4 +1,4 @@
-from fastapi import Request, status, HTTPException, Depends, APIRouter
+from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.rate_limiter import RateLimiter
@@ -19,6 +19,7 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
 )
 async def delete_organization(
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
 ):
@@ -26,8 +27,8 @@ async def delete_organization(
     current_user, membership = current_user_and_membership
 
     if membership.role.value != "owner":
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="org.deletion",
             resource_type="organizations",
@@ -57,8 +58,8 @@ async def delete_organization(
     )
 
     if not existing_org:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="org.deletion",
             resource_type="organizations",
@@ -73,37 +74,44 @@ async def delete_organization(
             status_code=status.HTTP_404_NOT_FOUND, detail="Organization already deleted"
         )
 
-    # Soft delete Organization
+    try:
+        # Soft delete Organization
 
-    existing_org.is_deleted = True
+        existing_org.is_deleted = True
 
-    # Delete members of the organization
-    await db.execute(
-        delete(OrganizationMember).where(
-            OrganizationMember.organization_id == membership.organization_id
+        # Delete members of the organization
+        await db.execute(
+            delete(OrganizationMember).where(
+                OrganizationMember.organization_id == membership.organization_id
+            )
         )
-    )
 
-    # Soft delete the projects
-    await db.execute(
-        update(Project)
-        .where(Project.organization_id == membership.organization_id)
-        .values(is_deleted=True)
-    )
+        # Soft delete the projects
+        await db.execute(
+            update(Project)
+            .where(Project.organization_id == membership.organization_id)
+            .values(is_deleted=True)
+        )
 
-    # Delete project members
-    await db.execute(
-        delete(ProjectMember).where(
-            ProjectMember.project_id.in_(
-                select(Project.id).where(
-                    Project.organization_id == membership.organization_id
+        # Delete project members
+        await db.execute(
+            delete(ProjectMember).where(
+                ProjectMember.project_id.in_(
+                    select(Project.id).where(
+                        Project.organization_id == membership.organization_id
+                    )
                 )
             )
         )
-    )
 
-    await audit_logs(
-        db=db,
+        await db.commit()
+
+    except Exception:
+        await db.rollback()
+        raise
+
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=current_user.id,
         action="org.deleted",
         resource_type="organizations",

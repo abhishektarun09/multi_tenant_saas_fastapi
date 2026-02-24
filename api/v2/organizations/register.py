@@ -1,4 +1,4 @@
-from fastapi import Request, status, HTTPException, Depends, APIRouter
+from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.rate_limiter import RateLimiter
@@ -21,6 +21,7 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
 async def register_organization(
     request: Request,
     organization: OrganizationCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: int = Depends(get_current_user),
 ):
@@ -42,8 +43,8 @@ async def register_organization(
     )
 
     if existing_organization:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=current_user.id,
             action="creation.failed",
             resource_type="organizations",
@@ -58,20 +59,26 @@ async def register_organization(
             detail="Organization already registered",
         )
 
-    new_organization = organization.model_dump()
-    new_organization["slug"] = slug_name
-    new_organization = Organization(**new_organization)
+    try:
+        new_organization = organization.model_dump()
+        new_organization["slug"] = slug_name
+        new_organization = Organization(**new_organization)
 
-    db.add(new_organization)
-    await db.flush()
+        db.add(new_organization)
+        await db.flush()
 
-    membership = OrganizationMember(
-        user_id=current_user.id, organization_id=new_organization.id, role="owner"
-    )
-    db.add(membership)
+        membership = OrganizationMember(
+            user_id=current_user.id, organization_id=new_organization.id, role="owner"
+        )
+        db.add(membership)
+        await db.commit()
 
-    await audit_logs(
-        db=db,
+    except Exception:
+        await db.rollback()
+        raise
+
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=current_user.id,
         action="org.registered",
         resource_type="organizations",

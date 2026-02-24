@@ -1,4 +1,12 @@
-from fastapi import Request, Response, status, HTTPException, Depends, APIRouter
+from fastapi import (
+    BackgroundTasks,
+    Request,
+    Response,
+    status,
+    HTTPException,
+    Depends,
+    APIRouter,
+)
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.oauth2 import get_current_user
@@ -24,6 +32,7 @@ async def update_password(
     response: Response,
     request: Request,
     input_data: UpdatePasswordIn,
+    background_tasks: BackgroundTasks,
     current_user: Users = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -59,14 +68,20 @@ async def update_password(
     payload = await get_valid_refresh_payload(request, db)
 
     jti_value = payload.jti
-    blacklisted_jti = JtiBlocklist(jti=jti_value)
 
-    db.add(blacklisted_jti)
-    hashed_password = hash(input_data.new_password)
-    identity.password_hash = hashed_password
+    try:
+        blacklisted_jti = JtiBlocklist(jti=jti_value)
 
-    await audit_logs(
-        db=db,
+        db.add(blacklisted_jti)
+        hashed_password = hash(input_data.new_password)
+        identity.password_hash = hashed_password
+        await db.commit()
+    except Exception:
+        await db.rollback
+        raise
+
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=current_user.id,
         action="password.changed",
         resource_type="users",

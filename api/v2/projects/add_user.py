@@ -1,4 +1,4 @@
-from fastapi import Request, status, HTTPException, Depends, APIRouter
+from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.v2.schemas.projects_schema import (
@@ -27,6 +27,7 @@ async def add_user(
     project_id: int,
     request: Request,
     payload: AddUsersIn,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
 ):
@@ -118,22 +119,31 @@ async def add_user(
             detail="User already exists in project",
         )
 
-    # 5. Create project member
-    new_project_member = ProjectMember(
-        user_id=user.id,
-        project_id=project_id,
-    )
+    try:
+        # 5. Create project member
+        new_project_member = ProjectMember(
+            user_id=user.id,
+            project_id=project_id,
+        )
 
-    db.add(new_project_member)
-    await db.flush()  # needed for audit log resource_id
+        db.add(new_project_member)
+        await db.flush()  # needed for audit log resource_id
 
-    await audit_logs(
-        db=db,
+        new_project_member_id = new_project_member.id
+
+        await db.commit()
+
+    except Exception:
+        await db.rollback()
+        raise
+
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=current_user.id,
         organization_id=membership.organization_id,
         action="user.added",
         resource_type="projects",
-        resource_id=str(new_project_member.id),
+        resource_id=str(new_project_member_id),
         meta_data={"project_id": project_id, "project_name": project.name},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),

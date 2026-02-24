@@ -5,6 +5,7 @@ from fastapi import HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
 from core.oauth2 import verify_token
+from database.db.session import AsyncSessionLocal
 from database.models.audit_log import AuditLog
 from sqlalchemy import select
 from database.models.jti_blocklist import JtiBlocklist
@@ -28,7 +29,6 @@ def slugify(name: str):
 
 
 async def audit_logs(
-    db: AsyncSession,
     action: str,
     resource_type: str,
     resource_id: Optional[str] = None,
@@ -40,25 +40,27 @@ async def audit_logs(
     user_agent: Optional[str] = None,
     endpoint: Optional[str] = None,
 ):
-    entry = AuditLog(
-        actor_user_id=actor_user_id,
-        organization_id=organization_id,
-        action=action,
-        resource_type=resource_type,
-        resource_id=resource_id,
-        status=status,
-        meta_data=meta_data,
-        ip_address=ip_address,
-        user_agent=user_agent,
-        endpoint=endpoint,
-    )
+    async with AsyncSessionLocal() as db:
+        try:
+            entry = AuditLog(
+                actor_user_id=actor_user_id,
+                organization_id=organization_id,
+                action=action,
+                resource_type=resource_type,
+                resource_id=resource_id,
+                status=status,
+                meta_data=meta_data,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                endpoint=endpoint,
+            )
 
-    try:
-        db.add(entry)
-        await db.commit()
-    except Exception:
-        await db.rollback()
-        raise
+            db.add(entry)
+            await db.commit()
+
+        except Exception:
+            await db.rollback()
+            raise
 
 
 async def get_valid_refresh_payload(request: Request, db: AsyncSession):

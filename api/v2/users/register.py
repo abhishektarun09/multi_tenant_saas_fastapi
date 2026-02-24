@@ -1,5 +1,5 @@
 import uuid
-from fastapi import Request, status, HTTPException, Depends, APIRouter
+from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.rate_limiter import RateLimiter
 from database.models.auth_identities import AuthIdentity
@@ -21,7 +21,10 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
     response_model=UserRegisterResponse,
 )
 async def register_user(
-    request: Request, user: UserCreate, db: AsyncSession = Depends(get_db)
+    request: Request,
+    user: UserCreate,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
 ):
 
     # Check if user with the same email already exists
@@ -67,10 +70,15 @@ async def register_user(
             provider="password",
             password_hash=hashed_password,
         )
-        db.add(identity)
+        try:
+            db.add(identity)
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise
 
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=existing_user.id,
             action="user.registered",
             resource_type="users",
@@ -101,14 +109,20 @@ async def register_user(
         provider="password",
         password_hash=hashed_password,
     )
-    db.add(identity)
+    try:
+        db.add(identity)
+        new_user_id = new_user.id
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
-    await audit_logs(
-        db=db,
-        actor_user_id=new_user.id,
+    background_tasks.add_task(
+        audit_logs,
+        actor_user_id=new_user_id,
         action="user.registered",
         resource_type="users",
-        resource_id=str(new_user.id),
+        resource_id=str(new_user_id),
         meta_data={"name": user.name, "email": user.email},
         ip_address=request.client.host,
         user_agent=request.headers.get("user-agent"),

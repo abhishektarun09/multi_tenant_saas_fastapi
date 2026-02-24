@@ -1,4 +1,4 @@
-from fastapi import Request, status, HTTPException, Depends, APIRouter
+from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.rate_limiter import RateLimiter
@@ -18,6 +18,7 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
 async def update(
     request: Request,
     payload: UpdateOrgIn,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
 ):
@@ -25,8 +26,8 @@ async def update(
     user, membership = current_user_and_membership
 
     if membership.role.value not in ("owner", "admin"):
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=user.id,
             action="update.failed",
             resource_type="organizations",
@@ -59,8 +60,8 @@ async def update(
     )
 
     if existing_organization:
-        await audit_logs(
-            db=db,
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=user.id,
             action="update.failed",
             resource_type="organizations",
@@ -77,11 +78,17 @@ async def update(
             detail="Organization already registered",
         )
 
-    updated_org = Organization(name=payload.new_name, slug=new_slug_name)
+    try:
+        updated_org = Organization(name=payload.new_name, slug=new_slug_name)
 
-    db.add(updated_org)
-    await audit_logs(
-        db=db,
+        db.add(updated_org)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
+
+    background_tasks.add_task(
+        audit_logs,
         actor_user_id=user.id,
         action="org.updated",
         resource_type="organizations",

@@ -1,5 +1,6 @@
 import uuid
 from fastapi import (
+    BackgroundTasks,
     Request,
     status,
     HTTPException,
@@ -37,6 +38,7 @@ async def login_google(request: Request):
 @router.get("/callback/google")
 async def auth_google(
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
 
@@ -75,23 +77,29 @@ async def auth_google(
     )
 
     if not existing_user:
-        new_user = Users(name=google_user.name, email=google_user.email)
+        try:
+            new_user = Users(name=google_user.name, email=google_user.email)
 
-        db.add(new_user)
-        await db.flush()
+            db.add(new_user)
+            await db.flush()
 
-        existing_user = new_user
+            existing_user = new_user
 
-        new_user_identity = AuthIdentity(
-            id=uuid.uuid4(),
-            user_id=new_user.id,
-            provider="google",
-            provider_user_id=google_user.id,
-        )
-        db.add(new_user_identity)
+            new_user_identity = AuthIdentity(
+                id=uuid.uuid4(),
+                user_id=new_user.id,
+                provider="google",
+                provider_user_id=google_user.id,
+            )
+            db.add(new_user_identity)
+            await db.commit()
 
-        await audit_logs(
-            db=db,
+        except Exception:
+            await db.rollback()
+            raise
+
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=new_user.id,
             action="user.registered",
             resource_type="auth",
@@ -116,16 +124,22 @@ async def auth_google(
     )
 
     if not existing_google_user:
-        new_user_identity = AuthIdentity(
-            id=uuid.uuid4(),
-            user_id=existing_user.id,
-            provider="google",
-            provider_user_id=google_user.id,
-        )
-        db.add(new_user_identity)
+        try:
+            new_user_identity = AuthIdentity(
+                id=uuid.uuid4(),
+                user_id=existing_user.id,
+                provider="google",
+                provider_user_id=google_user.id,
+            )
+            db.add(new_user_identity)
+            await db.commit()
 
-        await audit_logs(
-            db=db,
+        except Exception:
+            await db.rollback()
+            raise
+
+        background_tasks.add_task(
+            audit_logs,
             actor_user_id=existing_user.id,
             action="user.registered",
             resource_type="auth",
