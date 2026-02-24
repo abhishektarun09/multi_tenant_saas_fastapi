@@ -37,10 +37,54 @@ async def register_user(
         .scalars()
         .first()
     )
+
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
+        password_identity = (
+            (
+                await db.execute(
+                    select(AuthIdentity).where(
+                        AuthIdentity.user_id == existing_user.id,
+                        AuthIdentity.provider == "password",
+                    )
+                )
+            )
+            .scalars()
+            .first()
         )
+
+        if password_identity:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+
+        # hash the password - user.password
+        hashed_password = hash(user.password)
+
+        identity = AuthIdentity(
+            id=uuid.uuid4(),
+            user_id=existing_user.id,
+            provider="password",
+            password_hash=hashed_password,
+        )
+        db.add(identity)
+
+        await audit_logs(
+            db=db,
+            actor_user_id=existing_user.id,
+            action="user.registered",
+            resource_type="users",
+            resource_id=str(existing_user.id),
+            meta_data={"name": user.name, "email": user.email},
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent"),
+            endpoint="/register",
+        )
+
+        return {
+            "message": "Account created!",
+            "user": existing_user,
+        }
 
     # hash the password - user.password
     hashed_password = hash(user.password)
