@@ -30,11 +30,14 @@ class ListOrgs(BaseModel):
 
 
 class UserOut(BaseModel):
+    user_id: int
     name: str
     email: EmailStr
 
 
 class ListUsers(BaseModel):
+    page: int
+    page_size: int
     user_details: List[UserOut]
 
 
