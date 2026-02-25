@@ -56,8 +56,10 @@ class UserRegisterResponse(BaseModel):
 
 
 class Me(BaseModel):
-    email: EmailStr
+    user_id: int
     name: str
+    email: EmailStr
+    org_id: int
     role: str
 
 
