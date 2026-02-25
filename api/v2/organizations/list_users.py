@@ -1,4 +1,4 @@
-from fastapi import status, HTTPException, Depends, APIRouter
+from fastapi import Query, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.rate_limiter import RateLimiter
@@ -10,9 +10,14 @@ from core.oauth2 import get_user_and_membership
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+
 
 @router.get("/users", status_code=status.HTTP_200_OK, response_model=ListUsers)
 async def list_users(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
     db: AsyncSession = Depends(get_db),
     current_user_and_membership=Depends(get_user_and_membership),
 ):
@@ -25,6 +30,8 @@ async def list_users(
             detail="Not authorized to view users organization",
         )
 
+    offset = (page - 1) * page_size
+
     users_in_org = (
         (
             await db.execute(
@@ -34,6 +41,9 @@ async def list_users(
                     OrganizationMember.organization_id == membership.organization_id,
                     Users.is_deleted.is_(False),
                 )
+                .order_by(Users.id.asc())
+                .offset(offset)
+                .limit(page_size)
             )
         )
         .scalars()
@@ -45,6 +55,9 @@ async def list_users(
             status_code=status.HTTP_404_NOT_FOUND, detail="No users in Organization"
         )
 
-    user_details = [{"name": user.name, "email": user.email} for user in users_in_org]
+    user_details = [
+        {"user_id": user.id, "name": user.name, "email": user.email}
+        for user in users_in_org
+    ]
 
-    return {"user_details": user_details}
+    return {"page": page, "page_size": page_size, "user_details": user_details}

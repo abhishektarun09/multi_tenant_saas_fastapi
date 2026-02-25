@@ -30,11 +30,13 @@ class UpdateProjectsOut(BaseModel):
 
 
 class Project(BaseModel):
-    id: int
+    project_id: int
     name: str
 
 
 class ListProjects(BaseModel):
+    page: int
+    page_size: int
     project_details: List[Project]
 
 
