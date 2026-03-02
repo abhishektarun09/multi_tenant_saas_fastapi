@@ -15,9 +15,9 @@ class UserStatus(enum.Enum):
 class Users(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False, index=True)
     name = Column(String, nullable=False)
-    email = Column(String, nullable=False, unique=True)
+    email = Column(String, nullable=False, unique=True, index=True)
     is_verified = Column(Boolean, default=False)
     status = Column(
         Enum(UserStatus, name="user_status"),

@@ -19,11 +19,11 @@ class OrganizationMember(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        Integer, ForeignKey("users.id"), nullable=False, index=True
     )
     organization_id = Column(
         Integer,
-        ForeignKey("organizations.id", ondelete="CASCADE"),
+        ForeignKey("organizations.id"),
         nullable=False,
         index=True,
     )
