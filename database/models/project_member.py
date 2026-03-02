@@ -10,11 +10,11 @@ class ProjectMember(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        Integer, ForeignKey("users.id"), nullable=False, index=True
     )
     project_id = Column(
         Integer,
-        ForeignKey("projects.id", ondelete="CASCADE"),
+        ForeignKey("projects.id"),
         nullable=False,
         index=True,
     )
