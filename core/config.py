@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     google_client_secret: str
 
     base_url: str
+    better_stack_token: str
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 

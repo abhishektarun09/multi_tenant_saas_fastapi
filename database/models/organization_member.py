@@ -18,9 +18,7 @@ class OrganizationMember(Base):
     __tablename__ = "organization_members"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(
-        Integer, ForeignKey("users.id"), nullable=False, index=True
-    )
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     organization_id = Column(
         Integer,
         ForeignKey("organizations.id"),
