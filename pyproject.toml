@@ -15,6 +15,7 @@ dependencies = [
     "google-auth>=2.48.0",
     "httpx>=0.28.1",
     "itsdangerous>=2.2.0",
+    "logtail-python>=0.3.4",
     "passlib>=1.7.4",
     "psycopg2>=2.9.11",
     "pydantic-settings>=2.12.0",

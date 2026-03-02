@@ -48,5 +48,6 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           BASE_URL: ${{ secrets.BASE_URL }}
+          BETTER_STACK_TOKEN: ${{ secrets.BETTER_STACK_TOKEN }}
         run: |
           uv run pytest -v

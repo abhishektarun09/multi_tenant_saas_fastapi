@@ -5,6 +5,9 @@ from starlette.middleware.sessions import SessionMiddleware
 from api.v2 import users, organizations, auth, health, projects
 from core.config import env
 
+from core.logging_middleware import log_middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+
 app = FastAPI(
     title="Multi-Tenant SaaS Backend with RBAC",
     version="2.0.0",
@@ -63,6 +66,8 @@ app.add_middleware(
 )
 
 app.add_middleware(SessionMiddleware, secret_key=env.secret_key)
+
+app.add_middleware(BaseHTTPMiddleware, dispatch=log_middleware)
 
 app.include_router(auth.router)
 app.include_router(users.router)
