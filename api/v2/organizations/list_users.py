@@ -1,3 +1,6 @@
+import json
+
+from core.redis.redis_config import redis_client as redis
 from fastapi import Query, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,34 +33,56 @@ async def list_users(
             detail="Not authorized to view users organization",
         )
 
-    offset = (page - 1) * page_size
+    # get current version for this org from Redis (or default to 1)
+    version_key = f"org_id:{membership.organization_id}:version"
+    version = await redis.get(version_key)
+    if version is None:
+        version = 1
+        await redis.set(version_key, version)
 
-    users_in_org = (
-        (
-            await db.execute(
-                select(Users)
-                .join(OrganizationMember, OrganizationMember.user_id == Users.id)
-                .where(
-                    OrganizationMember.organization_id == membership.organization_id,
-                    Users.is_deleted.is_(False),
+    cache_key = f"org_id:{membership.organization_id}:v{version}:page:{page}:page_size:{page_size}/organizations/get_users"
+    cached_users_in_org = await redis.get(cache_key)
+
+    if cached_users_in_org:
+        cached_data = json.loads(cached_users_in_org)
+        return ListUsers.model_validate(cached_data)
+
+    else:
+        offset = (page - 1) * page_size
+
+        users_in_org = (
+            (
+                await db.execute(
+                    select(Users)
+                    .join(OrganizationMember, OrganizationMember.user_id == Users.id)
+                    .where(
+                        OrganizationMember.organization_id
+                        == membership.organization_id,
+                        Users.is_deleted.is_(False),
+                    )
+                    .order_by(Users.id.asc())
+                    .offset(offset)
+                    .limit(page_size)
                 )
-                .order_by(Users.id.asc())
-                .offset(offset)
-                .limit(page_size)
             )
-        )
-        .scalars()
-        .all()
-    )
-
-    if not users_in_org:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="No users in Organization"
+            .scalars()
+            .all()
         )
 
-    user_details = [
-        {"user_id": user.id, "name": user.name, "email": user.email}
-        for user in users_in_org
-    ]
+        if not users_in_org:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No users in Organization"
+            )
 
-    return {"page": page, "page_size": page_size, "user_details": user_details}
+        user_details = [
+            {"user_id": user.id, "name": user.name, "email": user.email}
+            for user in users_in_org
+        ]
+
+        users_in_org = ListUsers(
+            page=page, page_size=page_size, user_details=user_details
+        )
+
+        await redis.set(cache_key, users_in_org.model_dump_json(), ex=60 * 5)
+
+        return users_in_org

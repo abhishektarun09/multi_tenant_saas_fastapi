@@ -18,7 +18,7 @@ async def list_orgs(
     db: AsyncSession = Depends(get_db), current_user: int = Depends(get_current_user)
 ):
 
-    cache_key = f"user_id:{current_user.id}:/users/orgs"
+    cache_key = f"user_id:{current_user.id}:/users/get_orgs"
     cached_user = await redis.get(cache_key)
 
     if cached_user:
