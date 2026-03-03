@@ -15,6 +15,9 @@ Deployed on Render : https://multi-tenant-saas-fastapi.onrender.com/docs
 * **Containerization:** [Docker](https://www.docker.com/) & Docker Compose
 * **Security:** JWT with Access/Refresh Token Rotation
 * **Deployment:** PostgreSQL Database on [Neon](https://neon.com/) and FastAPI server on [Render](https://render.com/)
+* **Caching:** [Upstash](https://upstash.com/) (Serverless Redis)
+* **Logging & Monitoring:** [Better Stack](https://betterstack.com/) (Centralized logs & uptime monitoring)
+* **OAuth Provider:** [Google OAuth 2.0](https://developers.google.com/identity/protocols/oauth2)
 
 ---
 
