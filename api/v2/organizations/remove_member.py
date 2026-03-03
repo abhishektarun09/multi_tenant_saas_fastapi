@@ -211,8 +211,12 @@ async def remove_member(
         user_agent=request.headers.get("user-agent"),
         endpoint="/delete/organization/member",
     )
-    
-    # Invalidate redis data    
+
+    # get-/users/orgs List all orgs of the user
     await redis.delete(f"user_id:{existing_user.id}:/users/get_orgs")
-    
+
+    # get-organizations/users List all users of the org
+    version_key = f"org_id:{membership.organization_id}:version"
+    await redis.incr(version_key)
+
     return {"response": "User removed"}
