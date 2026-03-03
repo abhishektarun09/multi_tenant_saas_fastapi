@@ -1,5 +1,7 @@
-from fastapi import Depends, APIRouter, Request, Response
+from fastapi import Depends, APIRouter, HTTPException, Request, Response, status
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from core.logger import logger
 from core.rate_limiter import RateLimiter
 from database.models.jti_blocklist import JtiBlocklist
 from core.utils import get_valid_refresh_payload
@@ -22,9 +24,22 @@ async def logout(
     try:
         db.add(blacklisted_jti)
         await db.commit()
-    except Exception:
+
+    except SQLAlchemyError as e:
         await db.rollback()
-        raise
+
+        logger.exception(
+            "Database error",
+            extra={
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            },
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error",
+        )
 
     response.delete_cookie(
         key="refresh_token",

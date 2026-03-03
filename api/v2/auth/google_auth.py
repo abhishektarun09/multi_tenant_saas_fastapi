@@ -9,9 +9,11 @@ from fastapi import (
 )
 from authlib.integrations.starlette_client import OAuthError
 from fastapi.responses import HTMLResponse
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.v2.schemas.authorization_schemas import GoogleUser
 from core.google_callback_html import google_callback_html
+from core.logger import logger
 from core.oauth2 import create_access_token, create_refresh_token
 from core.rate_limiter import RateLimiter
 from database.models.auth_identities import AuthIdentity
@@ -94,9 +96,21 @@ async def auth_google(
             db.add(new_user_identity)
             await db.commit()
 
-        except Exception:
+        except SQLAlchemyError as e:
             await db.rollback()
-            raise
+
+            logger.exception(
+                "Database error",
+                extra={
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                },
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal Server Error",
+            )
 
         background_tasks.add_task(
             audit_logs,
@@ -134,9 +148,21 @@ async def auth_google(
             db.add(new_user_identity)
             await db.commit()
 
-        except Exception:
+        except SQLAlchemyError as e:
             await db.rollback()
-            raise
+
+            logger.exception(
+                "Database error",
+                extra={
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                },
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal Server Error",
+            )
 
         background_tasks.add_task(
             audit_logs,

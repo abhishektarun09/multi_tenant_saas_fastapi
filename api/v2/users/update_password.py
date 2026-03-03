@@ -8,7 +8,9 @@ from fastapi import (
     APIRouter,
 )
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from core.logger import logger
 from core.oauth2 import get_current_user
 from core.rate_limiter import RateLimiter
 from database.models.auth_identities import AuthIdentity
@@ -76,9 +78,22 @@ async def update_password(
         hashed_password = hash(input_data.new_password)
         identity.password_hash = hashed_password
         await db.commit()
-    except Exception:
-        await db.rollback
-        raise
+
+    except SQLAlchemyError as e:
+        await db.rollback()
+
+        logger.exception(
+            "Database error",
+            extra={
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            },
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error",
+        )
 
     background_tasks.add_task(
         audit_logs,

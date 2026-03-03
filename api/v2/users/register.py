@@ -1,6 +1,8 @@
 import uuid
 from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from core.logger import logger
 from core.rate_limiter import RateLimiter
 from database.models.auth_identities import AuthIdentity
 from database.models.users import Users
@@ -73,9 +75,22 @@ async def register_user(
         try:
             db.add(identity)
             await db.commit()
-        except Exception:
+
+        except SQLAlchemyError as e:
             await db.rollback()
-            raise
+
+            logger.exception(
+                "Database error",
+                extra={
+                    "error_type": type(e).__name__,
+                    "error_message": str(e),
+                },
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal Server Error",
+            )
 
         background_tasks.add_task(
             audit_logs,
@@ -113,9 +128,22 @@ async def register_user(
         db.add(identity)
         new_user_id = new_user.id
         await db.commit()
-    except Exception:
+
+    except SQLAlchemyError as e:
         await db.rollback()
-        raise
+
+        logger.exception(
+            "Database error",
+            extra={
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            },
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error",
+        )
 
     background_tasks.add_task(
         audit_logs,

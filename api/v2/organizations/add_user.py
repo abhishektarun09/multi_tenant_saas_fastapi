@@ -1,6 +1,8 @@
 from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from core.logger import logger
 from core.rate_limiter import RateLimiter
 from database.models.organization_member import OrganizationMember
 from api.v2.schemas.organization_schemas import (
@@ -139,9 +141,21 @@ async def add_user(
         db.add(new_member)
         await db.commit()
 
-    except Exception:
+    except SQLAlchemyError as e:
         await db.rollback()
-        raise
+
+        logger.exception(
+            "Database error",
+            extra={
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            },
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error",
+        )
 
     background_tasks.add_task(
         audit_logs,
