@@ -26,7 +26,7 @@ async def list_members(
 
     current_user, membership = current_user_and_membership
 
-    if membership.role.value not in ("owner", "admin"):
+    if membership.role not in ("owner", "admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view project members",

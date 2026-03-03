@@ -35,7 +35,7 @@ async def add_user(
     current_user, membership = current_user_and_membership
 
     # 1. Authorization
-    if membership.role.value not in ("owner", "admin"):
+    if membership.role not in ("owner", "admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to add users to projects",

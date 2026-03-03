@@ -1,3 +1,4 @@
+import json
 import uuid
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
@@ -12,6 +13,8 @@ from database.db.session import get_db
 from typing import Tuple
 from sqlalchemy import select
 from authlib.integrations.starlette_client import OAuth
+from core.redis.redis_config import redis_client as redis
+from core.redis.schemas import UserSchema, OrganizationMemberSchema
 
 
 bearer_scheme = HTTPBearer()
@@ -95,60 +98,84 @@ def get_token_payload(
 async def get_current_user(
     payload=Depends(get_token_payload), db: AsyncSession = Depends(get_db)
 ):
+    cache_key = f"user_id:{payload.user_id}"
+    cached_user = await redis.get(cache_key)
 
-    user = (
-        (
-            await db.execute(
-                select(Users).where(
-                    Users.id == payload.user_id,
-                    Users.is_deleted.is_(False),
+    if cached_user:
+        cached_data = json.loads(cached_user)
+        return UserSchema.model_validate(cached_data)
+
+    else:
+        user = (
+            (
+                await db.execute(
+                    select(Users).where(
+                        Users.id == payload.user_id,
+                        Users.is_deleted.is_(False),
+                    )
                 )
             )
-        )
-        .scalars()
-        .first()
-    )
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+            .scalars()
+            .first()
         )
 
-    return user
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+            )
+
+        user_data = UserSchema.model_validate(user)
+
+        await redis.set(cache_key, user_data.model_dump_json(), ex=60 * 5)
+
+        return user_data
 
 
 async def get_membership(
     payload=Depends(get_token_payload), db: AsyncSession = Depends(get_db)
 ):
 
-    org_id = payload.org_id
+    cache_key = f"org_id:{payload.org_id}:user_id:{payload.user_id}"
+    cached_member = await redis.get(cache_key)
 
-    if not org_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Organization not selected"
-        )
+    if cached_member:
+        cached_data = json.loads(cached_member)
+        return OrganizationMemberSchema.model_validate(cached_data)
 
-    # admin, member etc.
-    membership = (
-        (
-            await db.execute(
-                select(OrganizationMember).where(
-                    OrganizationMember.user_id == payload.user_id,
-                    OrganizationMember.organization_id == org_id,
+    else:
+        org_id = payload.org_id
+
+        if not org_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Organization not selected",
+            )
+
+        # admin, member etc.
+        membership = (
+            (
+                await db.execute(
+                    select(OrganizationMember).where(
+                        OrganizationMember.user_id == payload.user_id,
+                        OrganizationMember.organization_id == org_id,
+                    )
                 )
             )
-        )
-        .scalars()
-        .first()
-    )
-
-    if not membership:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this Organization or Organization does not exist anymore/deleted.",
+            .scalars()
+            .first()
         )
 
-    return membership
+        if not membership:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not a member of this Organization or Organization does not exist anymore/deleted.",
+            )
+
+        membership_data = OrganizationMemberSchema.model_validate(membership)
+
+        await redis.set(cache_key, membership_data.model_dump_json(), ex=60 * 5)
+
+        return membership_data
 
 
 def get_user_and_membership(

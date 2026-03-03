@@ -25,7 +25,7 @@ async def update(
 
     user, membership = current_user_and_membership
 
-    if membership.role.value not in ("owner", "admin"):
+    if membership.role not in ("owner", "admin"):
         background_tasks.add_task(
             audit_logs,
             actor_user_id=user.id,
@@ -34,7 +34,7 @@ async def update(
             organization_id=membership.organization_id,
             resource_id=str(membership.organization_id),
             status="failed",
-            meta_data={"new_name": payload.new_name, "role": membership.role.value},
+            meta_data={"new_name": payload.new_name, "role": membership.role},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="/organization/update",
@@ -68,7 +68,7 @@ async def update(
             organization_id=membership.organization_id,
             resource_id=str(membership.organization_id),
             status="failed",
-            meta_data={"new_name": payload.new_name, "role": membership.role.value},
+            meta_data={"new_name": payload.new_name, "role": membership.role},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="/organization/update",
@@ -95,7 +95,7 @@ async def update(
         organization_id=membership.organization_id,
         resource_id=str(membership.organization_id),
         status="success",
-        meta_data={"new_name": payload.new_name, "role": membership.role.value},
+        meta_data={"new_name": payload.new_name, "role": membership.role},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         endpoint="/organization/update",

@@ -28,7 +28,7 @@ async def delete_project(
     current_user, membership = current_user_and_membership
 
     # 1. Authorization
-    if membership.role.value not in ("owner", "admin"):
+    if membership.role not in ("owner", "admin"):
         background_tasks.add_task(
             audit_logs,
             actor_user_id=current_user.id,
@@ -39,7 +39,7 @@ async def delete_project(
             meta_data={
                 "project_id": project_id,
                 "reason": "Not authorized",
-                "role": membership.role.value,
+                "role": membership.role,
             },
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
@@ -75,7 +75,7 @@ async def delete_project(
             status="failed",
             meta_data={
                 "project_id": project_id,
-                "role": membership.role.value,
+                "role": membership.role,
             },
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
@@ -107,7 +107,7 @@ async def delete_project(
         status="success",
         meta_data={
             "project_id": project_id,
-            "role": membership.role.value,
+            "role": membership.role,
         },
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),

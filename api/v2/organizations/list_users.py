@@ -24,7 +24,7 @@ async def list_users(
 
     user, membership = current_user_and_membership
 
-    if membership.role.value not in ("owner", "admin"):
+    if membership.role not in ("owner", "admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to view users organization",

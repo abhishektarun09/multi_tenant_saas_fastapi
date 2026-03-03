@@ -26,7 +26,7 @@ async def create_project(
 
     user, membership = current_user_and_membership
 
-    if membership.role.value not in ("owner", "admin"):
+    if membership.role not in ("owner", "admin"):
         background_tasks.add_task(
             audit_logs,
             actor_user_id=user.id,
@@ -34,7 +34,7 @@ async def create_project(
             action="creation.failed",
             resource_type="projects",
             status="failed",
-            meta_data={"project_name": project_in.name, "role": membership.role.value},
+            meta_data={"project_name": project_in.name, "role": membership.role},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="/project/create",
@@ -65,7 +65,7 @@ async def create_project(
             action="creation.failed",
             resource_type="projects",
             status="failed",
-            meta_data={"project_name": project_in.name, "role": membership.role.value},
+            meta_data={"project_name": project_in.name, "role": membership.role},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="/project/create",

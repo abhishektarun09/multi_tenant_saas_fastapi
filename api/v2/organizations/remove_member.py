@@ -27,7 +27,7 @@ async def remove_member(
 
     current_user, membership = current_user_and_membership
 
-    if membership.role.value not in ("owner", "admin"):
+    if membership.role not in ("owner", "admin"):
         background_tasks.add_task(
             audit_logs,
             actor_user_id=current_user.id,
@@ -35,7 +35,7 @@ async def remove_member(
             resource_type="organizations",
             organization_id=membership.organization_id,
             status="failed",
-            meta_data={"role": membership.role.value},
+            meta_data={"role": membership.role},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="/delete/organization/member",
@@ -106,7 +106,7 @@ async def remove_member(
             detail="User does not exist in the organization",
         )
 
-    if membership.role.value == "admin" and user_in_org.role.value == "owner":
+    if membership.role == "admin" and user_in_org.role == "owner":
         background_tasks.add_task(
             audit_logs,
             actor_user_id=current_user.id,
@@ -114,7 +114,7 @@ async def remove_member(
             resource_type="organizations",
             organization_id=membership.organization_id,
             status="failed",
-            meta_data={"role": membership.role.value},
+            meta_data={"role": membership.role},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="/delete/organization/member",
@@ -124,7 +124,7 @@ async def remove_member(
             detail="Admins cannot remove organization owners",
         )
 
-    if user_in_org.role.value == "owner":
+    if user_in_org.role == "owner":
         owners_count = (
             (
                 await db.execute(
@@ -147,7 +147,7 @@ async def remove_member(
                 resource_type="organizations",
                 organization_id=membership.organization_id,
                 status="failed",
-                meta_data={"role": membership.role.value},
+                meta_data={"role": membership.role},
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("user-agent"),
                 endpoint="/delete/organization/member",
