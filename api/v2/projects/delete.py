@@ -1,7 +1,9 @@
 from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
 from sqlalchemy import select, delete
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.v2.schemas.projects_schema import DeleteProjectOut
+from core.logger import logger
 from core.rate_limiter import RateLimiter
 from core.utils import audit_logs
 from database.db.session import get_db
@@ -94,9 +96,21 @@ async def delete_project(
 
         await db.commit()
 
-    except Exception:
+    except SQLAlchemyError as e:
         await db.rollback()
-        raise
+
+        logger.exception(
+            "Database error",
+            extra={
+                "error_type": type(e).__name__,
+                "error_message": str(e),
+            },
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error",
+        )
 
     background_tasks.add_task(
         audit_logs,
