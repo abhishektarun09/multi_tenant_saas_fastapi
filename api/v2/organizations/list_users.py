@@ -83,6 +83,6 @@ async def list_users(
             page=page, page_size=page_size, user_details=user_details
         )
 
-        await redis.set(cache_key, users_in_org.model_dump_json(), ex=60 * 10)
+        await redis.set(cache_key, users_in_org.model_dump_json(), ex=60 * 5)
 
         return users_in_org
