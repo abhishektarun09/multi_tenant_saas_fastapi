@@ -32,7 +32,7 @@ async def update_project(
     current_user, membership = current_user_and_membership
 
     # Check whether user is authorized or not
-    if membership.role.value not in ("owner", "admin"):
+    if membership.role not in ("owner", "admin"):
         background_tasks.add_task(
             audit_logs,
             actor_user_id=current_user.id,
@@ -41,7 +41,7 @@ async def update_project(
             resource_type="projects",
             resource_id=str(project_id),
             status="failed",
-            meta_data={"new_name": payload.new_name, "role": membership.role.value},
+            meta_data={"new_name": payload.new_name, "role": membership.role},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="/project/update",
@@ -75,7 +75,7 @@ async def update_project(
             resource_type="projects",
             resource_id=str(project_id),
             status="failed",
-            meta_data={"new_name": payload.new_name, "role": membership.role.value},
+            meta_data={"new_name": payload.new_name, "role": membership.role},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="/project/update",
@@ -109,7 +109,7 @@ async def update_project(
             resource_type="projects",
             resource_id=str(project_id),
             status="failed",
-            meta_data={"new_name": payload.new_name, "role": membership.role.value},
+            meta_data={"new_name": payload.new_name, "role": membership.role},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="/project/update",
@@ -136,7 +136,7 @@ async def update_project(
         status="success",
         resource_type="projects",
         resource_id=str(project.id),
-        meta_data={"new_name": payload.new_name, "role": membership.role.value},
+        meta_data={"new_name": payload.new_name, "role": membership.role},
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         endpoint="/project/update",

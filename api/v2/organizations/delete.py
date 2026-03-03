@@ -26,7 +26,7 @@ async def delete_organization(
 
     current_user, membership = current_user_and_membership
 
-    if membership.role.value != "owner":
+    if membership.role != "owner":
         background_tasks.add_task(
             audit_logs,
             actor_user_id=current_user.id,
@@ -34,7 +34,7 @@ async def delete_organization(
             resource_type="organizations",
             organization_id=membership.organization_id,
             status="failed",
-            meta_data={"action": "soft_delete", "role": membership.role.value},
+            meta_data={"action": "soft_delete", "role": membership.role},
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
             endpoint="/organization/delete",
