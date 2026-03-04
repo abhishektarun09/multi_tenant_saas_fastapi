@@ -17,8 +17,21 @@ router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60
 async def list_orgs(
     db: AsyncSession = Depends(get_db), current_user: int = Depends(get_current_user)
 ):
+    user_version_key = f"user_id:{current_user.id}:version"
+    user_version = await redis.get(user_version_key)
+    if not user_version:
+        user_version = 1
+        await redis.set(user_version_key, user_version)
 
-    cache_key = f"user_id:{current_user.id}:/users/get_orgs"
+    global_version_key = "global:version"
+    global_version = await redis.get(global_version_key)
+    if not global_version:
+        global_version = 1
+        await redis.set(global_version_key, global_version)
+
+    cache_key = (
+        f"user_id:{current_user.id}:v{user_version}:gv:{global_version}:/users/orgs"
+    )
     cached_user = await redis.get(cache_key)
 
     if cached_user:

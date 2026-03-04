@@ -11,7 +11,7 @@ from api.v2.schemas.organization_schemas import (
 )
 from database.models.users import Users
 from database.db.session import get_db
-from core.utils import audit_logs
+from core.utils import audit_logs, invalidate_redis_keys
 from core.oauth2 import get_user_and_membership
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
@@ -168,6 +168,10 @@ async def add_user(
         ip_address=request.client.host if request.client else None,
         user_agent=request.headers.get("user-agent"),
         endpoint="/organization/add_user",
+    )
+
+    await invalidate_redis_keys(
+        org_id=membership.organization_id, user_id=existing_user.id
     )
 
     return {"message": "User added to organization"}

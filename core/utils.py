@@ -11,6 +11,7 @@ from core.oauth2 import verify_token
 from database.db.session import AsyncSessionLocal
 from database.models.audit_log import AuditLog
 from database.models.jti_blocklist import JtiBlocklist
+from core.redis.redis_config import redis_client as redis
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -109,3 +110,19 @@ async def get_valid_refresh_payload(request: Request, db: AsyncSession):
         raise HTTPException(status_code=401, detail="Token expired or blocklisted")
 
     return payload
+
+
+async def invalidate_redis_keys(org_id, user_id):
+    org_version_key = f"org_id:{org_id}:version"
+    await redis.incr(org_version_key)
+
+    user_version_key = f"user_id:{user_id}:version"
+    await redis.incr(user_version_key)
+
+
+async def invalidate_redis_keys_on_org_delete(org_id):
+    global_version_key = "global:version"
+    await redis.incr(global_version_key)
+
+    org_version_key = f"org_id:{org_id}:version"
+    await redis.incr(org_version_key)

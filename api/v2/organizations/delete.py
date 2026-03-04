@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.logger import logger
 from core.rate_limiter import RateLimiter
-from core.utils import audit_logs
+from core.utils import audit_logs, invalidate_redis_keys_on_org_delete
 from database.models.organization import Organization
 from database.models.organization_member import OrganizationMember
 from api.v2.schemas.organization_schemas import DeleteOrganizationOut
@@ -136,4 +136,7 @@ async def delete_organization(
         user_agent=request.headers.get("user-agent"),
         endpoint="/organization/delete",
     )
+
+    await invalidate_redis_keys_on_org_delete(org_id=membership.organization_id)
+
     return {"response": "Organization deleted", "action": "logout the user"}
