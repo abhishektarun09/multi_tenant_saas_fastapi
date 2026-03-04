@@ -12,7 +12,6 @@ from core.oauth2 import get_user_and_membership
 from database.models.project_member import ProjectMember
 from database.models.projects import Project
 from database.models.users import Users
-from core.redis.redis_config import redis_client as redis
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
