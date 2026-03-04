@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.logger import logger
 from core.rate_limiter import RateLimiter
-from core.utils import audit_logs
+from core.utils import audit_logs, invalidate_redis_keys
 from database.models.organization_member import OrganizationMember
 from api.v2.schemas.organization_schemas import RemoveMemberIn, RemoveMemberOut
 from database.db.session import get_db
@@ -12,7 +12,6 @@ from core.oauth2 import get_user_and_membership
 from database.models.project_member import ProjectMember
 from database.models.projects import Project
 from database.models.users import Users
-from core.redis.redis_config import redis_client as redis
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
@@ -212,11 +211,8 @@ async def remove_member(
         endpoint="/delete/organization/member",
     )
 
-    # get-/users/orgs List all orgs of the user
-    await redis.delete(f"user_id:{existing_user.id}:/users/get_orgs")
-
-    # get-organizations/users List all users of the org
-    version_key = f"org_id:{membership.organization_id}:version"
-    await redis.incr(version_key)
+    await invalidate_redis_keys(
+        org_id=membership.organization_id, user_id=existing_user.id
+    )
 
     return {"response": "User removed"}

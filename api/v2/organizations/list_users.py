@@ -36,11 +36,11 @@ async def list_users(
     # get current version for this org from Redis (or default to 1)
     version_key = f"org_id:{membership.organization_id}:version"
     version = await redis.get(version_key)
-    if version is None:
+    if not version:
         version = 1
         await redis.set(version_key, version)
 
-    cache_key = f"org_id:{membership.organization_id}:v{version}:page:{page}:page_size:{page_size}/organizations/get_users"
+    cache_key = f"org_id:{membership.organization_id}:v{version}:page:{page}:page_size:{page_size}/organizations/users"
     cached_users_in_org = await redis.get(cache_key)
 
     if cached_users_in_org:

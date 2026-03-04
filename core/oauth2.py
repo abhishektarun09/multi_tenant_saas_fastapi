@@ -135,7 +135,13 @@ async def get_membership(
     payload=Depends(get_token_payload), db: AsyncSession = Depends(get_db)
 ):
 
-    cache_key = f"org_id:{payload.org_id}:user_id:{payload.user_id}"
+    version_key = f"org_id:{payload.org_id}:version"
+    version = await redis.get(version_key)
+    if not version:
+        version = 1
+        await redis.set(version_key, version)
+
+    cache_key = f"org_id:{payload.org_id}:v{version}:user_id:{payload.user_id}"
     cached_member = await redis.get(cache_key)
 
     if cached_member:
