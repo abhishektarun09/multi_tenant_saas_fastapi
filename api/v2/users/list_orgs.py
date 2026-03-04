@@ -10,8 +10,8 @@ from api.v2.schemas.organization_schemas import ListOrgs
 from database.db.session import get_db
 from sqlalchemy import select
 
-router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
-
+# router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
+router = APIRouter()
 
 @router.get("/orgs", response_model=ListOrgs)
 async def list_orgs(
