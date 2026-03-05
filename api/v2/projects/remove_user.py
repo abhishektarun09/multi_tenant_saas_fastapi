@@ -222,7 +222,7 @@ async def remove_user(
         user_agent=request.headers.get("user-agent"),
         endpoint="project/remove_user",
     )
-    
+
     await invalidate_redis_keys_on_project_mem_change(project_id=project_id)
 
     return {"response": "Member removed from the project"}
