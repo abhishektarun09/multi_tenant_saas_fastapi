@@ -47,6 +47,8 @@ class ProjectMembersOut(BaseModel):
 
 
 class ListMembers(BaseModel):
+    organization_id: int
+    project_id: int
     member_details: List[ProjectMembersOut]
 
 

@@ -4,7 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.logger import logger
 from core.rate_limiter import RateLimiter
-from core.utils import audit_logs, invalidate_redis_keys
+from core.utils import audit_logs, invalidate_redis_keys_on_mem_change
 from database.models.organization_member import OrganizationMember
 from api.v2.schemas.organization_schemas import RemoveMemberIn, RemoveMemberOut
 from database.db.session import get_db
@@ -211,7 +211,7 @@ async def remove_member(
         endpoint="/delete/organization/member",
     )
 
-    await invalidate_redis_keys(
+    await invalidate_redis_keys_on_mem_change(
         org_id=membership.organization_id, user_id=existing_user.id
     )
 
