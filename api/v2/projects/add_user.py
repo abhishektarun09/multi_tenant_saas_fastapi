@@ -163,7 +163,7 @@ async def add_user(
         user_agent=request.headers.get("user-agent"),
         endpoint="project/add_user",
     )
-    
+
     await invalidate_redis_keys_on_project_mem_change(project_id=project_id)
 
     return new_project_member

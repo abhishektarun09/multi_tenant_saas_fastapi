@@ -1,6 +1,7 @@
+import orjson
+
 from fastapi import Query, status, HTTPException, Depends, APIRouter
 from fastapi.responses import ORJSONResponse
-import orjson
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.v2.schemas.projects_schema import (
