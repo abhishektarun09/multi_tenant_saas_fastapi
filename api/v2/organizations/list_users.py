@@ -52,21 +52,18 @@ async def list_users(
         offset = (page - 1) * page_size
 
         users_in_org = (
-            (
-                await db.execute(
-                    select(Users.id, Users.name, Users.email)
-                    .join(OrganizationMember, OrganizationMember.user_id == Users.id)
-                    .where(
-                        OrganizationMember.organization_id
-                        == membership.organization_id,
-                        Users.is_deleted.is_(False),
-                    )
-                    .order_by(Users.id.asc())
-                    .offset(offset)
-                    .limit(page_size)
+            await db.execute(
+                select(Users.id, Users.name, Users.email)
+                .join(OrganizationMember, OrganizationMember.user_id == Users.id)
+                .where(
+                    OrganizationMember.organization_id == membership.organization_id,
+                    Users.is_deleted.is_(False),
                 )
-            ).all()
-        )
+                .order_by(Users.id.asc())
+                .offset(offset)
+                .limit(page_size)
+            )
+        ).all()
 
         if not users_in_org:
             raise HTTPException(

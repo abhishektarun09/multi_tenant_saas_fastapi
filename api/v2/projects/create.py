@@ -11,7 +11,7 @@ from core.rate_limiter import RateLimiter
 from database.models.projects import Project
 
 from database.db.session import get_db
-from core.utils import audit_logs
+from core.utils import audit_logs, invalidate_redis_keys_on_project_add_delete_update
 from core.oauth2 import get_user_and_membership
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
@@ -118,5 +118,7 @@ async def create_project(
         user_agent=request.headers.get("user-agent"),
         endpoint="/project/create",
     )
+
+    await invalidate_redis_keys_on_project_add_delete_update(membership.organization_id)
 
     return new_project

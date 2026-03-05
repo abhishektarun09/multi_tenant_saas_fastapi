@@ -35,6 +35,7 @@ class Project(BaseModel):
 
 
 class ListProjects(BaseModel):
+    organization_id: int
     page: int
     page_size: int
     project_details: List[Project]
