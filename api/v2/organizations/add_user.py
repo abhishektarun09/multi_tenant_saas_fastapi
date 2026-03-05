@@ -11,7 +11,7 @@ from api.v2.schemas.organization_schemas import (
 )
 from database.models.users import Users
 from database.db.session import get_db
-from core.utils import audit_logs, invalidate_redis_keys
+from core.utils import audit_logs, invalidate_redis_keys_on_mem_change
 from core.oauth2 import get_user_and_membership
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
@@ -170,7 +170,7 @@ async def add_user(
         endpoint="/organization/add_user",
     )
 
-    await invalidate_redis_keys(
+    await invalidate_redis_keys_on_mem_change(
         org_id=membership.organization_id, user_id=existing_user.id
     )
 

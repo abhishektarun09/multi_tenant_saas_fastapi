@@ -13,7 +13,7 @@ from database.models.project_member import ProjectMember
 from database.models.projects import Project
 
 from database.db.session import get_db
-from core.utils import audit_logs
+from core.utils import audit_logs, invalidate_redis_keys_on_project_mem_change
 from core.oauth2 import get_user_and_membership
 from database.models.users import Users
 
@@ -163,5 +163,7 @@ async def add_user(
         user_agent=request.headers.get("user-agent"),
         endpoint="project/add_user",
     )
+    
+    await invalidate_redis_keys_on_project_mem_change(project_id=project_id)
 
     return new_project_member
