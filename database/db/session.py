@@ -13,6 +13,8 @@ if "neon.tech" in env.database_url:
 
 engine = create_async_engine(
     env.database_url,
+    pool_size=50,
+    max_overflow=50,
     pool_pre_ping=True,
     pool_recycle=300,
     connect_args=connect_args,

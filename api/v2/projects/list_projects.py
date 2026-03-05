@@ -10,8 +10,7 @@ from database.models.projects import Project
 from database.db.session import get_db
 from core.oauth2 import get_user_and_membership
 
-# router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100

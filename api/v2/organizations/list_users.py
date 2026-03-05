@@ -1,4 +1,4 @@
-import json
+import orjson
 
 from core.redis.redis_config import redis_client as redis
 from fastapi import Query, status, HTTPException, Depends, APIRouter
@@ -10,9 +10,9 @@ from api.v2.schemas.organization_schemas import ListUsers
 from database.models.users import Users
 from database.db.session import get_db
 from core.oauth2 import get_user_and_membership
+from fastapi.responses import ORJSONResponse
 
-# router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
 DEFAULT_PAGE_SIZE = 20
 MAX_PAGE_SIZE = 100
@@ -45,8 +45,8 @@ async def list_users(
     cached_users_in_org = await redis.get(cache_key)
 
     if cached_users_in_org:
-        cached_data = json.loads(cached_users_in_org)
-        return ListUsers.model_validate(cached_data)
+        cached_data = orjson.loads(cached_users_in_org)
+        return ORJSONResponse(content=cached_data)
 
     else:
         offset = (page - 1) * page_size
@@ -54,7 +54,7 @@ async def list_users(
         users_in_org = (
             (
                 await db.execute(
-                    select(Users)
+                    select(Users.id, Users.name, Users.email)
                     .join(OrganizationMember, OrganizationMember.user_id == Users.id)
                     .where(
                         OrganizationMember.organization_id
@@ -65,9 +65,7 @@ async def list_users(
                     .offset(offset)
                     .limit(page_size)
                 )
-            )
-            .scalars()
-            .all()
+            ).all()
         )
 
         if not users_in_org:
@@ -84,6 +82,6 @@ async def list_users(
             page=page, page_size=page_size, user_details=user_details
         )
 
-        await redis.set(cache_key, users_in_org.model_dump_json(), ex=60 * 5)
+        await redis.set(cache_key, orjson.dumps(users_in_org.model_dump()), ex=60 * 5)
 
         return users_in_org
