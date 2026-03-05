@@ -179,7 +179,9 @@ async def get_membership(
 
         membership_data = OrganizationMemberSchema.model_validate(membership)
 
-        await redis.set(cache_key, orjson.dumps(membership_data.model_dump()), ex=60 * 5)
+        await redis.set(
+            cache_key, orjson.dumps(membership_data.model_dump()), ex=60 * 5
+        )
 
         return membership_data
 

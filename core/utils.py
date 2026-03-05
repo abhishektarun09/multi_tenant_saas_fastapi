@@ -126,3 +126,8 @@ async def invalidate_redis_keys_on_org_delete(org_id):
 
     org_version_key = f"org_id:{org_id}:version"
     await redis.incr(org_version_key)
+
+
+async def invalidate_redis_keys_on_project_add_delete_update(org_id):
+    project_version_key = f"org_id:{org_id}:project_version"
+    await redis.incr(project_version_key)

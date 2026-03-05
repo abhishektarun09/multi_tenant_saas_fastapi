@@ -13,6 +13,7 @@ from fastapi.responses import ORJSONResponse
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
+
 @router.get("/orgs", response_model=ListOrgs)
 async def list_orgs(
     db: AsyncSession = Depends(get_db), current_user: int = Depends(get_current_user)

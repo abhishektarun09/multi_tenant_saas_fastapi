@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from api.v2.schemas.projects_schema import DeleteProjectOut
 from core.logger import logger
 from core.rate_limiter import RateLimiter
-from core.utils import audit_logs
+from core.utils import audit_logs, invalidate_redis_keys_on_project_add_delete_update
 from database.db.session import get_db
 from core.oauth2 import get_user_and_membership
 from database.models.project_member import ProjectMember
@@ -127,5 +127,7 @@ async def delete_project(
         user_agent=request.headers.get("user-agent"),
         endpoint="project/delete",
     )
+
+    await invalidate_redis_keys_on_project_add_delete_update(membership.organization_id)
 
     return {"response": "Project deleted"}
