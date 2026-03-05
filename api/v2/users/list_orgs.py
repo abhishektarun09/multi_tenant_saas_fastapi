@@ -1,4 +1,4 @@
-import json
+import orjson
 
 from fastapi import Depends, APIRouter
 from core.redis.redis_config import redis_client as redis
@@ -9,9 +9,9 @@ from database.models.organization_member import OrganizationMember
 from api.v2.schemas.organization_schemas import ListOrgs
 from database.db.session import get_db
 from sqlalchemy import select
+from fastapi.responses import ORJSONResponse
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
-
 
 @router.get("/orgs", response_model=ListOrgs)
 async def list_orgs(
@@ -35,8 +35,8 @@ async def list_orgs(
     cached_user = await redis.get(cache_key)
 
     if cached_user:
-        cached_data = json.loads(cached_user)
-        return ListOrgs.model_validate(cached_data)
+        cached_data = orjson.loads(cached_user)
+        return ORJSONResponse(content=cached_data)
 
     else:
         # List out the organizations the user is part of for frontend to select
@@ -54,6 +54,6 @@ async def list_orgs(
 
         user_data = ListOrgs(email=current_user.email, org_ids=org_ids)
 
-        await redis.set(cache_key, user_data.model_dump_json(), ex=60 * 5)
+        await redis.set(cache_key, orjson.dumps(user_data.model_dump()), ex=60 * 5)
 
         return user_data

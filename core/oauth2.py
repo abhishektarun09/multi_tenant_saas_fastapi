@@ -1,4 +1,4 @@
-import json
+import orjson
 import uuid
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
@@ -102,7 +102,7 @@ async def get_current_user(
     cached_user = await redis.get(cache_key)
 
     if cached_user:
-        cached_data = json.loads(cached_user)
+        cached_data = orjson.loads(cached_user)
         return UserSchema.model_validate(cached_data)
 
     else:
@@ -126,7 +126,7 @@ async def get_current_user(
 
         user_data = UserSchema.model_validate(user)
 
-        await redis.set(cache_key, user_data.model_dump_json(), ex=60 * 5)
+        await redis.set(cache_key, orjson.dumps(user_data.model_dump()), ex=60 * 5)
 
         return user_data
 
@@ -145,7 +145,7 @@ async def get_membership(
     cached_member = await redis.get(cache_key)
 
     if cached_member:
-        cached_data = json.loads(cached_member)
+        cached_data = orjson.loads(cached_member)
         return OrganizationMemberSchema.model_validate(cached_data)
 
     else:
@@ -179,7 +179,7 @@ async def get_membership(
 
         membership_data = OrganizationMemberSchema.model_validate(membership)
 
-        await redis.set(cache_key, membership_data.model_dump_json(), ex=60 * 5)
+        await redis.set(cache_key, orjson.dumps(membership_data.model_dump()), ex=60 * 5)
 
         return membership_data
 
