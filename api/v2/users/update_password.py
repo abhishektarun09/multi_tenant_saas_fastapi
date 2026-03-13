@@ -1,3 +1,4 @@
+from aiokafka.errors import KafkaError
 from fastapi import (
     BackgroundTasks,
     Request,
@@ -16,12 +17,13 @@ from core.rate_limiter import RateLimiter
 from database.models.auth_identities import AuthIdentity
 from database.models.jti_blocklist import JtiBlocklist
 from database.models.users import Users
-from core.utils import audit_logs, get_valid_refresh_payload, hash, verify
+from core.utils import get_valid_refresh_payload, hash, verify
 from api.v2.schemas.user_schemas import (
     UpdatePasswordIn,
     UpdatePasswordOut,
 )
 from database.db.session import get_db
+from core.kafka.kafka_producer import kafka_producer
 
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
@@ -95,17 +97,26 @@ async def update_password(
             detail="Internal Server Error",
         )
 
-    background_tasks.add_task(
-        audit_logs,
-        actor_user_id=current_user.id,
-        action="password.changed",
-        resource_type="users",
-        resource_id=str(current_user.id),
-        meta_data={"email": current_user.email},
-        ip_address=request.client.host,
-        user_agent=request.headers.get("user-agent"),
-        endpoint="/update_password",
-    )
+    audit_log_data = {
+        "actor_user_id": current_user.id,
+        "action": "password.changed",
+        "resource_type": "users",
+        "resource_id": str(current_user.id),
+        "meta_data": {"email": current_user.email},
+        "ip_address": request.client.host,
+        "user_agent": request.headers.get("user-agent"),
+        "endpoint": "/update_password",
+    }
+
+    try:
+        await kafka_producer.publish(value=audit_log_data)
+
+    except KafkaError as e:
+        logger.error(f"Failed to publish event: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal Server Error",
+        )
 
     response.delete_cookie(
         key="refresh_token",

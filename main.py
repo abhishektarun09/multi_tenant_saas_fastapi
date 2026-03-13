@@ -1,14 +1,25 @@
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from api.v2 import users, organizations, auth, health, projects
 from core.config import env
 
+from core.kafka.kafka_producer import kafka_producer
 from core.logging_middleware import log_middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await kafka_producer.start()
+    yield
+    await kafka_producer.stop()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Multi-Tenant SaaS Backend with RBAC",
     version="2.0.0",
     description=f"""
