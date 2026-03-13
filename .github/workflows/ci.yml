@@ -50,5 +50,11 @@ jobs:
           BASE_URL: ${{ secrets.BASE_URL }}
           BETTER_STACK_TOKEN: ${{ secrets.BETTER_STACK_TOKEN }}
           REDIS_URL: ${{ secrets.REDIS_URL }}
+          AIVEN_KAFKA_BOOTSTRAP: ${{ secrets.AIVEN_KAFKA_BOOTSTRAP }}
+          AIVEN_KAFKA_TOPIC: ${{ secrets.AIVEN_KAFKA_TOPIC }}
+          AIVEN_KAFKA_CA_PEM_B64: ${{ secrets.AIVEN_KAFKA_CA_PEM_B64 }}
+          AIVEN_KAFKA_SERVICE_CERT_B64: ${{ secrets.AIVEN_KAFKA_SERVICE_CERT_B64 }}
+          AIVEN_KAFKA_SERVICE_KEY_B64: ${{ secrets.AIVEN_KAFKA_SERVICE_KEY_B64 }}
+
         run: |
           uv run pytest -v
