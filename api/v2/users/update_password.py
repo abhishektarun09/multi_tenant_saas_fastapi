@@ -1,4 +1,3 @@
-from aiokafka.errors import KafkaError
 from fastapi import (
     BackgroundTasks,
     Request,
@@ -24,6 +23,7 @@ from api.v2.schemas.user_schemas import (
 )
 from database.db.session import get_db
 from core.kafka.kafka_producer import kafka_producer
+from fastapi.concurrency import run_in_threadpool
 
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
@@ -57,13 +57,15 @@ async def update_password(
         .first()
     )
 
-    if not verify(input_data.current_password, identity.password_hash):
+    if not await run_in_threadpool(
+        verify, input_data.current_password, identity.password_hash
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect",
         )
 
-    if verify(input_data.new_password, identity.password_hash):
+    if input_data.new_password == input_data.current_password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password must be different from the current password",
@@ -77,7 +79,7 @@ async def update_password(
         blacklisted_jti = JtiBlocklist(jti=jti_value)
 
         db.add(blacklisted_jti)
-        hashed_password = hash(input_data.new_password)
+        hashed_password = await run_in_threadpool(hash, input_data.new_password)
         identity.password_hash = hashed_password
         await db.commit()
 
@@ -108,15 +110,7 @@ async def update_password(
         "endpoint": "/update_password",
     }
 
-    try:
-        await kafka_producer.publish(value=audit_log_data)
-
-    except KafkaError as e:
-        logger.error(f"Failed to publish event: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal Server Error",
-        )
+    background_tasks.add_task(kafka_producer.publish, value=audit_log_data)
 
     response.delete_cookie(
         key="refresh_token",
