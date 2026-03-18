@@ -13,6 +13,7 @@ from api.v2.schemas.user_schemas import (
 )
 from database.db.session import get_db
 from sqlalchemy import select
+from starlette.concurrency import run_in_threadpool
 
 router = APIRouter(dependencies=[Depends(RateLimiter(max_calls=10, time_frame=60))])
 
@@ -64,7 +65,7 @@ async def register_user(
             )
 
         # hash the password - user.password
-        hashed_password = hash(user.password)
+        hashed_password = await run_in_threadpool(hash, user.password)
 
         identity = AuthIdentity(
             id=uuid.uuid4(),
@@ -110,7 +111,7 @@ async def register_user(
         }
 
     # hash the password - user.password
-    hashed_password = hash(user.password)
+    hashed_password = await run_in_threadpool(hash, user.password)
 
     user_data = user.model_dump(exclude={"password"})
     new_user = Users(**user_data)
