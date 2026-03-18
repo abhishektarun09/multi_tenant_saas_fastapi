@@ -18,6 +18,7 @@ from api.v2.schemas.authorization_schemas import LoginOut
 from database.db.session import get_db
 from core.oauth2 import create_access_token, create_refresh_token
 from core.config import env
+from starlette.concurrency import run_in_threadpool
 
 REFRESH_TOKEN_EXPIRE_DAYS = env.refresh_token_expire_days
 
@@ -66,7 +67,7 @@ async def login(
 
     user, identity = row
 
-    if not verify(user_credentials.password, identity.password_hash):
+    if not await run_in_threadpool(verify, user_credentials.password, identity.password_hash):
         background_tasks.add_task(
             audit_logs,
             action="login.failed",
