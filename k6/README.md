@@ -44,7 +44,7 @@ Ramping load test for cached GET endpoints. Uses **stages**: ramps VUs up, holds
 - `GET /v2/projects?page=1&page_size=20`
 - `GET /v2/projects/{project_id}/members`
 
-**Run from project root (example with Render + JWT):**
+**Run from project root:**
 
 ```bash
 BASE_URL=http://localhost:8000 \
