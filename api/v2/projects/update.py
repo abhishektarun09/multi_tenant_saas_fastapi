@@ -157,6 +157,8 @@ async def update_project(
         endpoint="/project/update",
     )
 
-    await invalidate_redis_keys_on_project_add_delete_update(membership.organization_id)
+    await invalidate_redis_keys_on_project_add_delete_update(
+        org_id=membership.organization_id, project_id=project.id
+    )
 
     return {"response": "Project updated successfully"}
