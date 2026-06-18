@@ -1,40 +1,86 @@
-import pytest
+from datetime import datetime, timezone
+
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-from unittest.mock import AsyncMock
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import (
+    create_async_engine,
+    AsyncSession,
+    async_sessionmaker,
+)
 
-from main import app
+from database.db.base import Base
 from database.db.session import get_db
+from main import app
+
+# ------------------------------------------------------------------
+# Shared-cache in-memory SQLite
+# ------------------------------------------------------------------
+DATABASE_URL = "sqlite+aiosqlite:///file:testdb?mode=memory&cache=shared&uri=true"
+
+engine = create_async_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    echo=False,
+)
 
 
-@pytest.fixture(scope="session")
-def anyio_backend():
-    return "asyncio"
+@event.listens_for(engine.sync_engine, "connect")
+def register_sqlite_functions(dbapi_connection, connection_record):
+    dbapi_connection.create_function(
+        "now", 0, lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
+TestingSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+
+# ------------------------------------------------------------------
+# Create / drop tables once per session
+# ------------------------------------------------------------------
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def setup_database():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+
+# ------------------------------------------------------------------
+# Per-test DB session with automatic rollback
+# ------------------------------------------------------------------
+@pytest_asyncio.fixture
+async def db_session():
+    async with engine.connect() as conn:
+        await conn.begin()
+        async with AsyncSession(bind=conn, expire_on_commit=False) as session:
+            yield session
+        await conn.rollback()
+
+
+# ------------------------------------------------------------------
+# Override get_db for every test automatically
+# ------------------------------------------------------------------
+@pytest_asyncio.fixture(autouse=True)
+async def override_db(db_session: AsyncSession):
+    async def _override():
+        yield db_session
+
+    app.dependency_overrides[get_db] = _override
+    yield
+    app.dependency_overrides.pop(get_db, None)
+
+
+# ------------------------------------------------------------------
+# HTTP client
+# ------------------------------------------------------------------
 @pytest_asyncio.fixture
 async def client():
-    """Plain async client — no DB override."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
-
-
-@pytest_asyncio.fixture
-async def client_with_db(mock_db):
-    """Async client with DB dependency overridden."""
-    app.dependency_overrides[get_db] = lambda: mock_db
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
-        yield ac
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
-def mock_db():
-    """A mock AsyncSession."""
-    session = AsyncMock(spec=AsyncSession)
-    return session

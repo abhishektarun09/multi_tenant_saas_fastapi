@@ -119,6 +119,8 @@ async def create_project(
         endpoint="/project/create",
     )
 
-    await invalidate_redis_keys_on_project_add_delete_update(membership.organization_id)
+    await invalidate_redis_keys_on_project_add_delete_update(
+        org_id=membership.organization_id, project_id=new_project_id
+    )
 
     return new_project

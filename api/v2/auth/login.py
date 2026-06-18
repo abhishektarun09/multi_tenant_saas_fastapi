@@ -67,7 +67,9 @@ async def login(
 
     user, identity = row
 
-    if not await run_in_threadpool(verify, user_credentials.password, identity.password_hash):
+    if not await run_in_threadpool(
+        verify, user_credentials.password, identity.password_hash
+    ):
         background_tasks.add_task(
             audit_logs,
             action="login.failed",
