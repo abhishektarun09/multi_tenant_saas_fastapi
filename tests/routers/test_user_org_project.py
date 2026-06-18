@@ -23,18 +23,21 @@ class FakeAsyncRedis:
 @pytest.fixture(autouse=True)
 def mock_redis():
     fake_redis = FakeAsyncRedis()
-    with patch("core.oauth2.redis", fake_redis), patch(
-        "core.utils.redis", fake_redis
-    ), patch("api.v2.users.list_orgs.redis", fake_redis):
+    with (
+        patch("core.oauth2.redis", fake_redis),
+        patch("core.utils.redis", fake_redis),
+        patch("api.v2.users.list_orgs.redis", fake_redis),
+    ):
         yield
 
 
 @pytest.fixture(autouse=True)
 def mock_audit_logs():
-    with patch("api.v2.users.register.audit_logs", new=AsyncMock()), patch(
-        "api.v2.auth.login.audit_logs", new=AsyncMock()
-    ), patch("api.v2.organizations.register.audit_logs", new=AsyncMock()), patch(
-        "api.v2.projects.create.audit_logs", new=AsyncMock()
+    with (
+        patch("api.v2.users.register.audit_logs", new=AsyncMock()),
+        patch("api.v2.auth.login.audit_logs", new=AsyncMock()),
+        patch("api.v2.organizations.register.audit_logs", new=AsyncMock()),
+        patch("api.v2.projects.create.audit_logs", new=AsyncMock()),
     ):
         yield
 

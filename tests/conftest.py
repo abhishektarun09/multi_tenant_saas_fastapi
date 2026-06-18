@@ -1,7 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
 
-import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import event

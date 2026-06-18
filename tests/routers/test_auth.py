@@ -5,8 +5,9 @@ from httpx import AsyncClient
 
 @pytest.fixture(autouse=True)
 def mock_audit_logs():
-    with patch("api.v2.users.register.audit_logs", new=AsyncMock()), patch(
-        "api.v2.auth.login.audit_logs", new=AsyncMock()
+    with (
+        patch("api.v2.users.register.audit_logs", new=AsyncMock()),
+        patch("api.v2.auth.login.audit_logs", new=AsyncMock()),
     ):
         yield
 
