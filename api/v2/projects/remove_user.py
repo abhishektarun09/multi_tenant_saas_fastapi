@@ -1,5 +1,5 @@
 from fastapi import BackgroundTasks, Request, status, HTTPException, Depends, APIRouter
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from api.v2.schemas.projects_schema import (
@@ -190,7 +190,12 @@ async def remove_user(
 
     # 5. Delete project member
     try:
-        db.delete(project_member)
+        await db.execute(
+            delete(ProjectMember).where(
+                ProjectMember.project_id == project.id,
+                ProjectMember.user_id == user.id,
+            )
+        )
         await db.commit()
 
     except SQLAlchemyError as e:

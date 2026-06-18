@@ -27,6 +27,8 @@ def mock_redis():
         patch("core.oauth2.redis", fake_redis),
         patch("core.utils.redis", fake_redis),
         patch("api.v2.users.list_orgs.redis", fake_redis),
+        patch("api.v2.projects.list_projects.redis", fake_redis),
+        patch("api.v2.projects.list_members.redis", fake_redis),
     ):
         yield
 
@@ -38,6 +40,8 @@ def mock_audit_logs():
         patch("api.v2.auth.login.audit_logs", new=AsyncMock()),
         patch("api.v2.organizations.register.audit_logs", new=AsyncMock()),
         patch("api.v2.projects.create.audit_logs", new=AsyncMock()),
+        patch("api.v2.projects.update.audit_logs", new=AsyncMock()),
+        patch("api.v2.projects.delete.audit_logs", new=AsyncMock()),
     ):
         yield
 
@@ -109,6 +113,75 @@ async def test_user_org_project_flow(client: AsyncClient):
     assert project_data["name"] == "Test Project"
     assert project_data["organization_id"] == org_id
     assert project_data["created_by"] == user["id"]
+
+
+@pytest.mark.asyncio
+async def test_project_update_delete_list_routes(client: AsyncClient):
+    email = "projectflow@example.com"
+    password = "Strongpassword#12345678"
+
+    await register_user(client, email, password)
+    access_token = await login_user(client, email, password)
+    headers = {"Authorization": f"Bearer {access_token}"}
+
+    org_response = await client.post(
+        "/v2/organizations/register",
+        json={"name": "Project Route Org"},
+        headers=headers,
+    )
+    assert org_response.status_code == 201
+    org_id = org_response.json()["id"]
+
+    select_response = await client.post(
+        f"/v2/organizations/select/{org_id}", headers=headers
+    )
+    assert select_response.status_code == 202
+    selected_headers = {
+        "Authorization": f"Bearer {select_response.json()['access_token']}"
+    }
+
+    create_response = await client.post(
+        "/v2/projects/",
+        json={"name": "Initial Project"},
+        headers=selected_headers,
+    )
+    assert create_response.status_code == 201
+
+    list_response = await client.get(
+        "/v2/projects/?page=1&page_size=20", headers=selected_headers
+    )
+    assert list_response.status_code == 200
+    list_data = list_response.json()
+    assert list_data["organization_id"] == org_id
+    assert list_data["project_details"][0]["name"] == "Initial Project"
+    project_id = list_data["project_details"][0]["project_id"]
+
+    update_response = await client.put(
+        f"/v2/projects/{project_id}",
+        json={"new_name": "Updated Project"},
+        headers=selected_headers,
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["response"] == "Project updated successfully"
+
+    updated_list_response = await client.get(
+        "/v2/projects/?page=1&page_size=20", headers=selected_headers
+    )
+    assert updated_list_response.status_code == 200
+    updated_list_data = updated_list_response.json()
+    assert updated_list_data["project_details"][0]["name"] == "Updated Project"
+
+    delete_response = await client.delete(
+        f"/v2/projects/{project_id}", headers=selected_headers
+    )
+    assert delete_response.status_code == 200
+    assert delete_response.json()["response"] == "Project deleted"
+
+    after_delete_response = await client.get(
+        "/v2/projects/?page=1&page_size=20", headers=selected_headers
+    )
+    assert after_delete_response.status_code == 404
+    assert after_delete_response.json()["detail"] == "No projects in Organization"
 
 
 @pytest.mark.asyncio
