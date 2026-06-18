@@ -159,7 +159,7 @@ async def remove_user(
     project_member = (
         (
             await db.execute(
-                select(ProjectMember.id).where(
+                select(ProjectMember).where(
                     ProjectMember.project_id == project.id,
                     ProjectMember.user_id == user.id,
                 )
